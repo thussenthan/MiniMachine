@@ -1,0 +1,35 @@
+{
+    "manifest_version": 3,
+    "name": "MiniMachine",
+    "version": "1.0",
+    "description": "Auto-navigates to next puzzle after solve & extracts all puzzle times and summary statistics from NYT mini puzzles.",
+    "icons": {
+        "16": "icons/logo.png",
+        "48": "icons/logo.png",
+        "128": "icons/logo.png"
+    },
+    "permissions": [
+        "storage",
+        "tabs",
+        "scripting"
+    ],
+    "host_permissions": [
+        "https://www.nytimes.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://www.nytimes.com/crosswords/game/mini/*"
+            ],
+            "js": [
+                "content.js"
+            ]
+        }
+    ]
+}

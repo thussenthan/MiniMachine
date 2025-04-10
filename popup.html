@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>MiniMachine</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 10px;
+            min-width: 250px;
+        }
+
+        button {
+            margin: 5px 0;
+            padding: 5px 10px;
+        }
+
+        h1,
+        h2 {
+            margin: 10px 0 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        li {
+            padding: 3px 0;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>MiniMachine</h1>
+    <button id="getData">Get Data</button>
+    <button id="goToSummary">Go to Summary</button>
+    <h2>Saved Puzzles:</h2>
+    <ul id="puzzleList"></ul>
+    <script src="popup.js"></script>
+</body>
+
+</html>

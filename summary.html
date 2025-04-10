@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Summary - MiniMachine</title>
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            padding: 10px;
+            min-width: 250px;
+        }
+
+        button {
+            margin: 5px 0;
+            padding: 5px 10px;
+        }
+
+        h1 {
+            margin: 10px 0 5px;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        li {
+            padding: 3px 0;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Your MiniMachine Summary</h1>
+
+    <h2>All Saved Puzzles:</h2>
+    <ul id="puzzleList"></ul>
+
+    <h2>Filtered & Sorted Puzzles (Last Week)</h2>
+    <ul id="filteredList7"></ul>
+
+    <h2>Filtered & Sorted Puzzles (Last Month)</h2>
+    <ul id="filteredList30"></ul>
+
+    <h2>Filtered & Sorted Puzzles (Last Year)</h2>
+    <ul id="filteredList365"></ul>
+
+    <h2>Filtered & Sorted Puzzles (All Time)</h2>
+    <ul id="filteredListAll"></ul>
+
+    <button id="exportCSV">Export Data to CSV</button>
+    <button id="clearData">Clear All Data</button>
+    <br>
+    Import CSV:
+    <input type="file" id="importCSV" accept=".csv" />
+    <span id="importStatus" style="color: green;"></span>
+
+    <canvas id="lineChart"></canvas>
+    <canvas id="histogramChart"></canvas>
+
+    <script src="summary.js"></script>
+</body>
+
+</html>
