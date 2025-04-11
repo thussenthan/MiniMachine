@@ -1,9 +1,8 @@
 // --- content.js ---
-
 // Utility: wait for an element's text (optional, used in scraping mode)
-function waitForTimerElement(selector, maxWait = 100) {
+function waitForTimerElement(selector, maxWait = 1000) {
     return new Promise((resolve) => {
-        const intervalTime = 1; // check every 1ms
+        const intervalTime = 100; // check every 1ms
         let timeElapsed = 0;
         const interval = setInterval(() => {
             const element = document.querySelector(selector);

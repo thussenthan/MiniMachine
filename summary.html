@@ -20,6 +20,14 @@
             margin: 10px 0 5px;
         }
 
+        h2 {
+            margin: 10px 0 5px;
+        }
+
+        h3 {
+            margin: 10px 0 5px;
+        }
+
         ul {
             list-style-type: none;
             padding: 0;
@@ -30,6 +38,13 @@
         li {
             padding: 3px 0;
             border-bottom: 1px solid #ccc;
+        }
+
+        .statsGroup {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 10px 0;
+            background: #f9f9f9;
         }
     </style>
 </head>
@@ -42,15 +57,26 @@
 
     <h2>Filtered & Sorted Puzzles (Last Week)</h2>
     <ul id="filteredList7"></ul>
+    <h3>Summary Statistics</h3>
+    <div id="stats7" class="statsGroup" data-order="1"></div>
 
     <h2>Filtered & Sorted Puzzles (Last Month)</h2>
     <ul id="filteredList30"></ul>
+    <h3>Summary Statistics</h3>
+    <div id="stats30" class="statsGroup" data-order="2"></div>
 
     <h2>Filtered & Sorted Puzzles (Last Year)</h2>
     <ul id="filteredList365"></ul>
+    <h3>Summary Statistics (Last Year)</h3>
+    <div id="statsSaturday365" class="statsGroup" data-order="3"></div>
+    <div id="statsNonSaturday365" class="statsGroup" data-order="4"></div>
 
     <h2>Filtered & Sorted Puzzles (All Time)</h2>
     <ul id="filteredListAll"></ul>
+    <h3>Summary Statistics (All Time)</h3>
+    <div id="statsAll" class="statsGroup" data-order="5"></div>
+    <div id="statsSaturdayAll" class="statsGroup" data-order="6"></div>
+    <div id="statsNonSaturdayAll" class="statsGroup" data-order="7"></div>
 
     <button id="exportCSV">Export Data to CSV</button>
     <button id="clearData">Clear All Data</button>

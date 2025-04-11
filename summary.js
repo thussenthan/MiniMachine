@@ -175,10 +175,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Usage: Compute statistics and render charts.
-    // At the end of your summary.js file (or merged into your chrome.storage.local.get callback)
     chrome.storage.local.get({ puzzles: [] }, (data) => {
         const puzzles = data.puzzles;
-        const totalPossiblePuzzles = 100; // Adjust as needed
+        const startDate = new Date("2014-08-21");
+        const today = new Date();
+        const millisecondsPerDay = 1000 * 60 * 60 * 24;
+        const totalPossiblePuzzles = Math.floor((today - startDate) / millisecondsPerDay);
 
         // Define groups:
         // All puzzles over specific time ranges.
@@ -196,10 +198,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const groupNonSaturdayAll = filterPuzzleData(groupAll, false);
 
         // Compute statistics for each group. Pass null for chart container IDs if you don’t need charts in these cases.
-        const stats7 = computePuzzleStatistics(group7, totalPossiblePuzzles, null, null);
-        const stats30 = computePuzzleStatistics(group30, totalPossiblePuzzles, null, null);
-        const statsSaturday365 = computePuzzleStatistics(groupSaturday365, totalPossiblePuzzles, null, null);
-        const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, totalPossiblePuzzles, null, null);
+        const stats7 = computePuzzleStatistics(group7, group7.length, null, null);
+        const stats30 = computePuzzleStatistics(group30, group30.length, null, null);
+        const statsSaturday365 = computePuzzleStatistics(groupSaturday365, group365.length, null, null);
+        const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, group365.length, null, null);
         const statsAll = computePuzzleStatistics(groupAll, totalPossiblePuzzles, null, null);
         const statsSaturdayAll = computePuzzleStatistics(groupSaturdayAll, totalPossiblePuzzles, null, null);
         const statsNonSaturdayAll = computePuzzleStatistics(groupNonSaturdayAll, totalPossiblePuzzles, null, null);
