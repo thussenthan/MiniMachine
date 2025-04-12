@@ -48,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function computePuzzleStatistics(puzzles, totalPossiblePuzzles, lineChartId, histogramChartId) {
 
         // 1. Compute percentage of completed puzzles.
-        const completedPercentage = (puzzles.length / totalPossiblePuzzles) * 100;
+        const completedPercentage = (puzzles.filter(p => timeToSeconds(p.time) !== null).length / totalPossiblePuzzles) * 100;
         // 2. Collect all puzzle times (in seconds) in an array and filter out any null values/entries.
         const times = puzzles.map(p => timeToSeconds(p.time)).filter(t => t !== null);
         if (times.length === 0) {
@@ -174,66 +174,6 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Usage: Compute statistics and render charts.
-    chrome.storage.local.get({ puzzles: [] }, (data) => {
-        const puzzles = data.puzzles;
-        const startDate = new Date("2014-08-21");
-        const today = new Date();
-        const millisecondsPerDay = 1000 * 60 * 60 * 24;
-        const totalPossiblePuzzles = Math.floor((today - startDate) / millisecondsPerDay);
-
-        // Define groups:
-        // All puzzles over specific time ranges.
-        const group7 = filterPuzzlesByDays(puzzles, 7);
-        const group30 = filterPuzzlesByDays(puzzles, 30);
-        const group365 = filterPuzzlesByDays(puzzles, 365);
-        const groupAll = puzzles;  // All puzzles over all days
-
-        // For the 365-day group, further filter into Saturday and non-Saturday puzzles.
-        const groupSaturday365 = filterPuzzleData(group365, true);
-        const groupNonSaturday365 = filterPuzzleData(group365, false);
-
-        // For all-time puzzles, filter into Saturday and non-Saturday puzzles.
-        const groupSaturdayAll = filterPuzzleData(groupAll, true);
-        const groupNonSaturdayAll = filterPuzzleData(groupAll, false);
-
-        // Compute statistics for each group. Pass null for chart container IDs if you don’t need charts in these cases.
-        const stats7 = computePuzzleStatistics(group7, group7.length, null, null);
-        const stats30 = computePuzzleStatistics(group30, group30.length, null, null);
-        const statsSaturday365 = computePuzzleStatistics(groupSaturday365, group365.length, null, null);
-        const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, group365.length, null, null);
-        const statsAll = computePuzzleStatistics(groupAll, totalPossiblePuzzles, null, null);
-        const statsSaturdayAll = computePuzzleStatistics(groupSaturdayAll, totalPossiblePuzzles, null, null);
-        const statsNonSaturdayAll = computePuzzleStatistics(groupNonSaturdayAll, totalPossiblePuzzles, null, null);
-
-        // Helper: Format the statistics into an HTML snippet.
-        function formatStats(label, stats) {
-            return `<h3>${label}</h3>
-                <ul>
-                  <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>
-                  <li>Mean Time: ${stats.mean ? stats.mean.toFixed(2) + " s" : "N/A"}</li>
-                  <li>Standard Deviation: ${stats.stdDev ? stats.stdDev.toFixed(2) + " s" : "N/A"}</li>
-                  <li>Median Time: ${stats.median ? stats.median.toFixed(2) + " s" : "N/A"}</li>
-                  <li>Mode Time: ${stats.mode ? stats.mode.toFixed(2) + " s" : "N/A"}</li>
-                </ul>`;
-        }
-
-        // Create a container element to hold the summary statistics.
-        let statsContainer = document.createElement("div");
-        statsContainer.id = "statsContainer";
-        statsContainer.innerHTML = "<h2>Summary Statistics</h2>" +
-            formatStats("All puzzles (Last 7 days)", stats7) +
-            formatStats("All puzzles (Last 30 days)", stats30) +
-            formatStats("Saturday puzzles (Last 365 days)", statsSaturday365) +
-            formatStats("Non-Saturday puzzles (Last 365 days)", statsNonSaturday365) +
-            formatStats("All puzzles (All time)", statsAll) +
-            formatStats("Saturday puzzles (All time)", statsSaturdayAll) +
-            formatStats("Non-Saturday puzzles (All time)", statsNonSaturdayAll);
-
-        // Append the stats container to your HTML page.
-        document.body.appendChild(statsContainer);
-    });
-
     // Function to update the filtered container with puzzles from the last 'days' days,
     // sorted from fastest (top) to slowest.
     function updateFilteredPuzzleList(days, containerId) {
@@ -277,6 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateFilteredPuzzleList(30, "filteredList30");
                 updateFilteredPuzzleList(365, "filteredList365");
                 updateFilteredPuzzleList(10000, "filteredListAll");
+                updateStats();
             });
         }
     });
@@ -297,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "puzzles.csv");
+            link.setAttribute("download", "miniMachine_RawData.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -349,6 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     updateFilteredPuzzleList(30, "filteredList30");
                     updateFilteredPuzzleList(365, "filteredList365");
                     updateFilteredPuzzleList(10000, "filteredListAll");
+                    updateStats();  // <-- Update the statistics after import
                 });
             });
         };
@@ -383,6 +325,93 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     updatePuzzleList();
 
+    // Helper: Counts the number of Saturdays (if isSaturday is true) or non-Saturdays (if false)
+    // in the last "days" days (including today).
+    function countDaysOfWeekInRange(days, isSaturday) {
+        const today = new Date();
+        const startDate = new Date();
+        startDate.setDate(today.getDate() - days + 1);
+        let count = 0;
+        for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+            if (isSaturday && d.getDay() === 6) count++;
+            if (!isSaturday && d.getDay() !== 6) count++;
+        }
+        return count;
+    }
+
+    function updateStats() {
+        chrome.storage.local.get({ puzzles: [] }, (data) => {
+            const puzzles = data.puzzles;
+            const startDate = new Date("2014-08-21");
+            const today = new Date();
+            const millisecondsPerDay = 1000 * 60 * 60 * 24;
+            const totalPossiblePuzzles = Math.floor((today - startDate) / millisecondsPerDay);
+
+            // Define groups:
+            const group7 = filterPuzzlesByDays(puzzles, 7);
+            const group30 = filterPuzzlesByDays(puzzles, 30);
+            const group365 = filterPuzzlesByDays(puzzles, 365);
+            const groupAll = puzzles;  // All puzzles
+
+            // For the 365-day group, further filter into Saturday and non-Saturday puzzles.
+            const groupSaturday365 = filterPuzzleData(group365, true);
+            const groupNonSaturday365 = filterPuzzleData(group365, false);
+
+            // For all-time puzzles, filter into Saturday and non-Saturday puzzles.
+            const groupSaturdayAll = filterPuzzleData(groupAll, true);
+            const groupNonSaturdayAll = filterPuzzleData(groupAll, false);
+
+            // Calculate total possible Saturdays and non-Saturdays for the 365-day period.
+            const totalSaturdays365 = countDaysOfWeekInRange(365, true);
+            const totalNonSaturdays365 = countDaysOfWeekInRange(365, false);
+
+            // Compute statistics for each group.
+            const statsOverall = computePuzzleStatistics(groupAll, totalPossiblePuzzles, null, null);
+            const stats7 = computePuzzleStatistics(group7, group7.length, null, null);
+            const stats30 = computePuzzleStatistics(group30, group30.length, null, null);
+            const statsSaturday365 = computePuzzleStatistics(groupSaturday365, totalSaturdays365, null, null);
+            const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, totalNonSaturdays365, null, null);
+            const statsSaturdayAll = computePuzzleStatistics(groupSaturdayAll, totalPossiblePuzzles, null, null);
+            const statsNonSaturdayAll = computePuzzleStatistics(groupNonSaturdayAll, totalPossiblePuzzles, null, null);
+
+            // Helper to format statistics with a heading.
+            function formatStats(heading, stats) {
+                return `<h3>${heading}</h3>
+                        <ul>
+                          <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>
+                          <li>Mean Time: ${stats.mean ? stats.mean.toFixed(2) + " s" : "N/A"}</li>
+                          <li>Standard Deviation: ${stats.stdDev ? stats.stdDev.toFixed(2) + " s" : "N/A"}</li>
+                          <li>Median Time: ${stats.median ? stats.median.toFixed(2) + " s" : "N/A"}</li>
+                          <li>Mode Time: ${stats.mode ? stats.mode.toFixed(2) + " s" : "N/A"}</li>
+                        </ul>`;
+            }
+
+            // Update the various stats containers with an appropriate heading:
+            const overallEl = document.getElementById("overallStatistics");
+            if (overallEl) overallEl.innerHTML = formatStats("Overall Statistics", statsOverall);
+
+            const stats7El = document.getElementById("stats7");
+            if (stats7El) stats7El.innerHTML = formatStats("Last Week's Puzzles", stats7);
+
+            const stats30El = document.getElementById("stats30");
+            if (stats30El) stats30El.innerHTML = formatStats("Last Month's Puzzles", stats30);
+
+            const statsSat365El = document.getElementById("statsSaturday365");
+            if (statsSat365El) statsSat365El.innerHTML = formatStats("Last Year's Saturday Puzzles", statsSaturday365);
+
+            const statsNonSat365El = document.getElementById("statsNonSaturday365");
+            if (statsNonSat365El) statsNonSat365El.innerHTML = formatStats("Last Year's Non-Saturday Puzzles", statsNonSaturday365);
+
+            const statsSatAllEl = document.getElementById("statsSaturdayAll");
+            if (statsSatAllEl) statsSatAllEl.innerHTML = formatStats("All Time Saturday Puzzles", statsSaturdayAll);
+
+            const statsNonSatAllEl = document.getElementById("statsNonSaturdayAll");
+            if (statsNonSatAllEl) statsNonSatAllEl.innerHTML = formatStats("All Time Non-Saturday Puzzles", statsNonSaturdayAll);
+        });
+    }
+
+    updateStats();
+
     // Listen for changes in chrome storage and update the puzzle list in realtime.
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === "local" && changes.puzzles) {
@@ -391,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
             updateFilteredPuzzleList(30, "filteredList30");
             updateFilteredPuzzleList(365, "filteredList365");
             updateFilteredPuzzleList(10000, "filteredListAll");
-
+            updateStats();
         }
     });
 });

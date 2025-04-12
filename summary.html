@@ -25,7 +25,7 @@
         }
 
         h3 {
-            margin: 10px 0 5px;
+            margin: 5px 0;
         }
 
         ul {
@@ -33,6 +33,8 @@
             padding: 0;
             max-height: 300px;
             overflow-y: auto;
+            margin: 0;
+            padding-left: 20px;
         }
 
         li {
@@ -51,32 +53,38 @@
 
 <body>
     <h1>Your MiniMachine Summary</h1>
-
+    <br>
     <h2>All Saved Puzzles:</h2>
     <ul id="puzzleList"></ul>
+    <div id="overallStatistics" class="statsGroup">
+        <h3>Overall Statistics</h2>
+            <p>Count: <span id="totalCountAll"></span></p>
+            <p>Percentage: <span id="totalCount"></span></p>
+    </div>
+    <hr>
 
-    <h2>Filtered & Sorted Puzzles (Last Week)</h2>
+    <h2>Last Week's Puzzles</h2>
     <ul id="filteredList7"></ul>
-    <h3>Summary Statistics</h3>
     <div id="stats7" class="statsGroup" data-order="1"></div>
+    <hr>
 
-    <h2>Filtered & Sorted Puzzles (Last Month)</h2>
+    <h2>Last Month's Puzzles</h2>
     <ul id="filteredList30"></ul>
-    <h3>Summary Statistics</h3>
     <div id="stats30" class="statsGroup" data-order="2"></div>
+    <hr>
 
-    <h2>Filtered & Sorted Puzzles (Last Year)</h2>
+    <h2>Last Year's Puzzles</h2>
     <ul id="filteredList365"></ul>
-    <h3>Summary Statistics (Last Year)</h3>
     <div id="statsSaturday365" class="statsGroup" data-order="3"></div>
     <div id="statsNonSaturday365" class="statsGroup" data-order="4"></div>
+    <hr>
 
     <h2>Filtered & Sorted Puzzles (All Time)</h2>
     <ul id="filteredListAll"></ul>
-    <h3>Summary Statistics (All Time)</h3>
     <div id="statsAll" class="statsGroup" data-order="5"></div>
     <div id="statsSaturdayAll" class="statsGroup" data-order="6"></div>
     <div id="statsNonSaturdayAll" class="statsGroup" data-order="7"></div>
+    <hr>
 
     <button id="exportCSV">Export Data to CSV</button>
     <button id="clearData">Clear All Data</button>
@@ -84,9 +92,6 @@
     Import CSV:
     <input type="file" id="importCSV" accept=".csv" />
     <span id="importStatus" style="color: green;"></span>
-
-    <canvas id="lineChart"></canvas>
-    <canvas id="histogramChart"></canvas>
 
     <script src="summary.js"></script>
 </body>
