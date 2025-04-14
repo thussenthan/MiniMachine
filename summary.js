@@ -26,6 +26,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return li;
     }
 
+    // Helper: Filters an array of puzzles to only those that are Saturdays or non-Saturdays.
+    // 'saturdaysOnly' is true for Saturdays, false for non-Saturdays.
     function filterPuzzleData(puzzleList, saturdaysOnly) {
         return puzzleList.filter(puzzle => {
             const dateObj = new Date(puzzle.date);
@@ -44,6 +46,67 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // Add this helper function after DOMContentLoaded begins
+    function zoomChart(chartType, data, options) {
+        const overlay = document.createElement("div");
+        overlay.style.position = "fixed";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.width = "100vw";
+        overlay.style.height = "100vh";
+        overlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+        overlay.style.display = "flex";
+        overlay.style.alignItems = "center";
+        overlay.style.justifyContent = "center";
+        overlay.style.zIndex = "10000";
+
+        // Create a container for the chart with a white background, taking 75% of viewport.
+        const container = document.createElement("div");
+        container.style.width = "75vw";
+        container.style.height = "75vh";
+        container.style.backgroundColor = "white";
+        container.style.padding = "10px";
+        container.style.boxSizing = "border-box";
+
+        const fullCanvas = document.createElement("canvas");
+        // Set canvas dimensions to container's dimensions.
+        fullCanvas.width = container.clientWidth;
+        fullCanvas.height = container.clientHeight;
+
+        container.appendChild(fullCanvas);
+        overlay.appendChild(container);
+        document.body.appendChild(overlay);
+
+        // Merge zoom plugin options into provided options.
+        // (Requires chartjs-plugin-zoom to be loaded in your page.)
+        const zoomOptions = {
+            plugins: {
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: true },
+                        drag: { enabled: true }, // allows drag-selection for zooming
+                        mode: 'x'              // zoom along the x-axis
+                    },
+                    pan: {
+                        enabled: true,
+                        mode: 'x'
+                    }
+                }
+            }
+        };
+        // Merge with existing options (a simple shallow merge, adjust as needed)
+        options.plugins = Object.assign({}, options.plugins, zoomOptions.plugins);
+
+        new Chart(fullCanvas, { type: chartType, data: data, options: options });
+
+        // Exit zoom by clicking anywhere on the overlay outside of the container.
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+            }
+        });
+    }
+
     // Helper: Computes summary statistics and prepares chart data for puzzle times.
     function computePuzzleStatistics(puzzles, totalPossiblePuzzles, lineChartId, histogramChartId) {
 
@@ -52,9 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // 2. Collect all puzzle times (in seconds) in an array and filter out any null values/entries.
         const times = puzzles.map(p => timeToSeconds(p.time)).filter(t => t !== null);
         if (times.length === 0) {
-            console.warn("No valid puzzle times available to compute statistics.");
+            console.log("No valid puzzle times available to compute statistics.");
             return {
-                completedPercentage,
+                completedPercentage: completedPercentage,
                 mean: null,
                 stdDev: null,
                 median: null,
@@ -96,6 +159,29 @@ document.addEventListener("DOMContentLoaded", () => {
         const sortedPuzzles = [...puzzles].sort((a, b) => new Date(a.date) - new Date(b.date));
         const lineLabels = sortedPuzzles.map(p => p.date);
         const lineData = sortedPuzzles.map(p => timeToSeconds(p.time));
+
+        // Compute trend line data using linear regression on the index values
+        let trendLineData = [];
+        if (lineData.length > 1) {
+            const n = lineData.length;
+            let sumX = 0, sumY = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += lineData[i];
+            }
+            const meanX = sumX / n, meanY = sumY / n;
+            let num = 0, den = 0;
+            for (let i = 0; i < n; i++) {
+                num += (i - meanX) * (lineData[i] - meanY);
+                den += Math.pow(i - meanX, 2);
+            }
+            const slope = num / den;
+            const intercept = meanY - slope * meanX;
+            trendLineData = lineData.map((_, i) => intercept + slope * i);
+        } else {
+            trendLineData = lineData.slice();
+        }
+
         // 8. Prepare histogram data.
         // Define number of bins (for example, 10) and compute bin width.
         const binCount = 10;
@@ -119,23 +205,82 @@ document.addEventListener("DOMContentLoaded", () => {
         if (lineChartId && typeof Chart !== "undefined") {
             const ctxLine = document.getElementById(lineChartId)?.getContext("2d");
             if (ctxLine) {
-                new Chart(ctxLine, {
+                const lineChart = new Chart(ctxLine, {
                     type: "line",
                     data: {
                         labels: lineLabels,
-                        datasets: [{
-                            label: "Puzzle Time (seconds)",
-                            data: lineData,
-                            fill: false,
-                            borderColor: "blue"
-                        }]
+                        datasets: [
+                            {
+                                label: "Time (sec)",
+                                data: lineData,
+                                fill: false,
+                                borderColor: "blue",
+                                backgroundColor: "blue",
+                                order: 2
+                            },
+                            {
+                                label: "Trend Line",
+                                data: trendLineData,
+                                fill: false,
+                                borderColor: "red",
+                                backgroundColor: "red",
+                                pointRadius: 0,
+                                order: 1
+                            }
+                        ]
                     },
                     options: {
                         scales: {
-                            x: { title: { display: true, text: "Date" } },
-                            y: { title: { display: true, text: "Time (seconds)" } }
+                            x: { title: { display: true } },
+                            y: { title: { display: true, text: "Time (sec)" } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                filter: function (tooltipItem) {
+                                    return tooltipItem.dataset.label !== "Trend Line";
+                                }
+                            }
                         }
                     }
+                });
+                // Replace the previous click listener with a call to zoomChart:
+                ctxLine.canvas.addEventListener("click", () => {
+                    zoomChart("line", {
+                        labels: lineLabels,
+                        datasets: [
+                            {
+                                label: "Time (sec)",
+                                data: lineData,
+                                fill: false,
+                                borderColor: "blue",
+                                backgroundColor: "blue",
+                                order: 2
+                            },
+                            {
+                                label: "Trend Line",
+                                data: trendLineData,
+                                fill: false,
+                                borderColor: "red",
+                                backgroundColor: "red",
+                                pointRadius: 0,
+                                order: 1
+                            }
+                        ]
+                    }, {
+                        scales: {
+                            x: { title: { display: true, text: "Date" } },
+                            y: { title: { display: true, text: "Time (sec)" } }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                filter: function (tooltipItem) {
+                                    return tooltipItem.dataset.label !== "Trend Line";
+                                }
+                            }
+                        }
+                    });
                 });
             }
         }
@@ -149,16 +294,34 @@ document.addEventListener("DOMContentLoaded", () => {
                         datasets: [{
                             label: "Frequency",
                             data: histogramBins,
-                            backgroundColor: "lightgray",
-                            borderColor: "black"
+                            backgroundColor: "green",
+                            borderColor: "green"
                         }]
                     },
                     options: {
                         scales: {
                             x: { title: { display: true, text: "Puzzle Time Bins (s)" } },
                             y: { title: { display: true, text: "Frequency" } }
-                        }
+                        },
+                        plugins: { legend: { display: false } }
                     }
+                });
+                ctxHist.canvas.addEventListener("click", () => {
+                    zoomChart("bar", {
+                        labels: histogramLabels,
+                        datasets: [{
+                            label: "Frequency",
+                            data: histogramBins,
+                            backgroundColor: "green",
+                            borderColor: "green"
+                        }]
+                    }, {
+                        scales: {
+                            x: { title: { display: true, text: "Puzzle Time Bins (s)" } },
+                            y: { title: { display: true, text: "Frequency" } }
+                        },
+                        plugins: { legend: { display: false } }
+                    });
                 });
             }
         }
@@ -212,7 +375,6 @@ document.addEventListener("DOMContentLoaded", () => {
     clearDataButton.addEventListener("click", () => {
         if (window.confirm("Are you sure you want to delete all historical data? \n This action cannot be undone.")) {
             chrome.storage.local.set({ puzzles: [] }, () => {
-                updatePuzzleList();
                 updateFilteredPuzzleList(7, "filteredList7");
                 updateFilteredPuzzleList(30, "filteredList30");
                 updateFilteredPuzzleList(365, "filteredList365");
@@ -285,7 +447,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                     console.log("CSV import complete.");
                     // Update UI lists after importing.
-                    updatePuzzleList();
                     updateFilteredPuzzleList(7, "filteredList7");
                     updateFilteredPuzzleList(30, "filteredList30");
                     updateFilteredPuzzleList(365, "filteredList365");
@@ -307,23 +468,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-
-    // Function to update the displayed list of saved puzzles
-    function updatePuzzleList() {
-        chrome.storage.local.get({ puzzles: [] }, (data) => {
-            puzzleList.innerHTML = "";
-            if (!data.puzzles.length) {
-                const li = document.createElement("li");
-                li.textContent = "No puzzles saved.";
-                puzzleList.appendChild(li);
-            } else {
-                data.puzzles.slice().reverse().forEach((puzzle) => {
-                    puzzleList.appendChild(createPuzzleListItem(puzzle));
-                });
-            }
-        });
-    }
-    updatePuzzleList();
 
     // Helper: Counts the number of Saturdays (if isSaturday is true) or non-Saturdays (if false)
     // in the last "days" days (including today).
@@ -373,11 +517,13 @@ document.addEventListener("DOMContentLoaded", () => {
             const totalSaturdays365 = countDaysOfWeekInRange(365, true);
             const totalNonSaturdays365 = countDaysOfWeekInRange(365, false);
 
+            // Compute statistics for each group and render charts.
+            const statsOverall = computePuzzleStatistics(groupAll, totalPossiblePuzzles, "lineChartAll", "histChartAll");
+            const stats7 = computePuzzleStatistics(group7, group7.length, "lineChart7", "histChart7");
+            const stats30 = computePuzzleStatistics(group30, group30.length, "lineChart30", "histChart30");
+            const stats365 = computePuzzleStatistics(group365, group365.length, "lineChart365", "histChart365");
+
             // Compute statistics for each group.
-            const statsOverall = computePuzzleStatistics(groupAll, totalPossiblePuzzles, null, null);
-            const stats7 = computePuzzleStatistics(group7, group7.length, null, null);
-            const stats30 = computePuzzleStatistics(group30, group30.length, null, null);
-            const stats365 = computePuzzleStatistics(group365, group365.length, null, null);
             const statsSaturday365 = computePuzzleStatistics(groupSaturday365, totalSaturdays365, null, null);
             const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, totalNonSaturdays365, null, null);
             const statsSaturdayAll = computePuzzleStatistics(groupSaturdayAll, totalPossiblePuzzles, null, null);
@@ -392,16 +538,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Helper to format statistics with a heading.
             function formatStats(heading, stats, count) {
+                if (stats.mean === null) {
+                    return `<h3>${heading}</h3>
+                 <ul>
+                     <li>No valid puzzle times available.</li>
+                 </ul>`;
+                }
                 return `<h3>${heading}</h3>
-                        <ul>
-                          <li>Count: ${count}</li>
-                          <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>
-                          <li>Mean: ${stats.mean ? stats.mean.toFixed(2) + " s" : "N/A"}</li>
-                          <li>Standard Deviation: ${stats.stdDev ? stats.stdDev.toFixed(2) + " s" : "N/A"}</li>
-                          <li>Median: ${stats.median ? stats.median.toFixed(0) + " s" : "N/A"}</li>
-                          <li>Mode: ${stats.mode ? stats.mode.toFixed(0) + " s" : "N/A"}</li>
-                        </ul>`;
+            <ul>
+              <li>Count: ${count}</li>
+              <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>
+              <li>Mean: ${stats.mean.toFixed(2)} s</li>
+              <li>Standard Deviation: ${stats.stdDev.toFixed(2)} s</li>
+              <li>Median: ${stats.median.toFixed(0)} s</li>
+              <li>Mode: ${stats.mode.toFixed(0)} s</li>
+            </ul>`;
             }
+
 
             // Update Last Week statistics (row 2, first column):
             const stats7El = document.getElementById("stats7");
@@ -444,7 +597,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Listen for changes in chrome storage and update the puzzle list in realtime.
     chrome.storage.onChanged.addListener((changes, areaName) => {
         if (areaName === "local" && changes.puzzles) {
-            updatePuzzleList();
             updateFilteredPuzzleList(7, "filteredList7");
             updateFilteredPuzzleList(30, "filteredList30");
             updateFilteredPuzzleList(365, "filteredList365");
