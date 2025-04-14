@@ -11,19 +11,20 @@
             min-width: 250px;
         }
 
-        button {
-            margin: 5px 0;
-            padding: 5px 10px;
+        #summaryGrid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto auto auto;
+            gap: 10px;
         }
 
-        h1 {
-            margin: 10px 0 5px;
+        .grid-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #f9f9f9;
         }
 
-        h2 {
-            margin: 10px 0 5px;
-        }
-
+        h2,
         h3 {
             margin: 5px 0;
         }
@@ -42,56 +43,99 @@
             border-bottom: 1px solid #ccc;
         }
 
-        .statsGroup {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: 10px 0;
-            background: #f9f9f9;
+        /* Optional: Style the graph placeholders */
+        .graph-placeholder {
+            height: 200px;
+            text-align: center;
+            line-height: 200px;
+            background: #e8e8e8;
+            color: #555;
+            font-size: 18px;
+        }
+
+        /* Buttons and import area styling */
+        #actionButtons {
+            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
     <h1>Your MiniMachine Summary</h1>
-    <br>
-    <h2>All Saved Puzzles:</h2>
-    <ul id="puzzleList"></ul>
-    <div id="overallStatistics" class="statsGroup">
-        <h3>Overall Statistics</h2>
-            <p>Count: <span id="totalCountAll"></span></p>
-            <p>Percentage: <span id="totalCount"></span></p>
+    <div id="summaryGrid">
+        <!-- Row 1: Puzzle Lists -->
+        <div class="grid-item" id="lastWeekPuzzles">
+            <h2>Last Week</h2>
+            <ul id="filteredList7"></ul>
+        </div>
+        <div class="grid-item" id="lastMonthPuzzles">
+            <h2>Last Month</h2>
+            <ul id="filteredList30"></ul>
+        </div>
+        <div class="grid-item" id="lastYearPuzzles">
+            <h2>Last Year</h2>
+            <ul id="filteredList365"></ul>
+        </div>
+        <div class="grid-item" id="allTimePuzzles">
+            <h2>All Time</h2>
+            <ul id="filteredListAll"></ul>
+        </div>
+
+        <!-- Row 2: Statistics -->
+        <div class="grid-item" id="lastWeekStats">
+            <div id="stats7"></div>
+        </div>
+        <div class="grid-item" id="lastMonthStats">
+            <div id="stats30"></div>
+        </div>
+        <div class="grid-item" id="lastYearStats">
+            <div id="statsSaturday365"></div>
+            <div id="statsNonSaturday365"></div>
+            <div id="statsAllYear"></div>
+        </div>
+        <div class="grid-item" id="allTimeStats">
+            <div id="statsSaturdayAll"></div>
+            <div id="statsNonSaturdayAll"></div>
+            <div id="statsAllTime"></div>
+        </div>
+
+        <!-- Row 3: Line Charts -->
+        <div class="grid-item">
+            <canvas id="lineChart7" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="lineChart30" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="lineChart365" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="lineChartAll" width="300" height="200"></canvas>
+        </div>
+
+        <!-- Row 4: Histograms -->
+        <div class="grid-item">
+            <canvas id="histChart7" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="histChart30" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="histChart365" width="300" height="200"></canvas>
+        </div>
+        <div class="grid-item">
+            <canvas id="histChartAll" width="300" height="200"></canvas>
+        </div>
     </div>
-    <hr>
 
-    <h2>Last Week's Puzzles</h2>
-    <ul id="filteredList7"></ul>
-    <div id="stats7" class="statsGroup" data-order="1"></div>
-    <hr>
-
-    <h2>Last Month's Puzzles</h2>
-    <ul id="filteredList30"></ul>
-    <div id="stats30" class="statsGroup" data-order="2"></div>
-    <hr>
-
-    <h2>Last Year's Puzzles</h2>
-    <ul id="filteredList365"></ul>
-    <div id="statsSaturday365" class="statsGroup" data-order="3"></div>
-    <div id="statsNonSaturday365" class="statsGroup" data-order="4"></div>
-    <hr>
-
-    <h2>Filtered & Sorted Puzzles (All Time)</h2>
-    <ul id="filteredListAll"></ul>
-    <div id="statsAll" class="statsGroup" data-order="5"></div>
-    <div id="statsSaturdayAll" class="statsGroup" data-order="6"></div>
-    <div id="statsNonSaturdayAll" class="statsGroup" data-order="7"></div>
-    <hr>
-
-    <button id="exportCSV">Export Data to CSV</button>
-    <button id="clearData">Clear All Data</button>
-    <br>
-    Import CSV:
-    <input type="file" id="importCSV" accept=".csv" />
-    <span id="importStatus" style="color: green;"></span>
+    <div id="actionButtons">
+        <button id="exportCSV">Export Data to CSV</button>
+        <button id="clearData">Clear All Data</button>
+        <br>
+        Import CSV:
+        <input type="file" id="importCSV" accept=".csv" />
+        <span id="importStatus" style="color: green;"></span>
+    </div>
 
     <script src="summary.js"></script>
 </body>

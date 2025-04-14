@@ -353,11 +353,19 @@ document.addEventListener("DOMContentLoaded", () => {
             const group365 = filterPuzzlesByDays(puzzles, 365);
             const groupAll = puzzles;  // All puzzles
 
-            // For the 365-day group, further filter into Saturday and non-Saturday puzzles.
+            // For Last Week: separate into Saturday and Non-Saturday puzzles.
+            const groupSaturday7 = filterPuzzleData(group7, true);
+            const groupNonSaturday7 = filterPuzzleData(group7, false);
+
+            // For Last Month: separate into Saturday and Non-Saturday puzzles.
+            const groupSaturday30 = filterPuzzleData(group30, true);
+            const groupNonSaturday30 = filterPuzzleData(group30, false);
+
+            // For the 365-day group, further filter into Saturday and Non-Saturday puzzles.
             const groupSaturday365 = filterPuzzleData(group365, true);
             const groupNonSaturday365 = filterPuzzleData(group365, false);
 
-            // For all-time puzzles, filter into Saturday and non-Saturday puzzles.
+            // For all-time puzzles, filter into Saturday and Non-Saturday puzzles.
             const groupSaturdayAll = filterPuzzleData(groupAll, true);
             const groupNonSaturdayAll = filterPuzzleData(groupAll, false);
 
@@ -369,44 +377,65 @@ document.addEventListener("DOMContentLoaded", () => {
             const statsOverall = computePuzzleStatistics(groupAll, totalPossiblePuzzles, null, null);
             const stats7 = computePuzzleStatistics(group7, group7.length, null, null);
             const stats30 = computePuzzleStatistics(group30, group30.length, null, null);
+            const stats365 = computePuzzleStatistics(group365, group365.length, null, null);
             const statsSaturday365 = computePuzzleStatistics(groupSaturday365, totalSaturdays365, null, null);
             const statsNonSaturday365 = computePuzzleStatistics(groupNonSaturday365, totalNonSaturdays365, null, null);
             const statsSaturdayAll = computePuzzleStatistics(groupSaturdayAll, totalPossiblePuzzles, null, null);
             const statsNonSaturdayAll = computePuzzleStatistics(groupNonSaturdayAll, totalPossiblePuzzles, null, null);
 
+            // Compute Last Week stats.
+            const stats7Sat = computePuzzleStatistics(groupSaturday7, groupSaturday7.length, null, null);
+            const stats7Non = computePuzzleStatistics(groupNonSaturday7, groupNonSaturday7.length, null, null);
+            // Compute Last Month stats.
+            const stats30Sat = computePuzzleStatistics(groupSaturday30, groupSaturday30.length, null, null);
+            const stats30Non = computePuzzleStatistics(groupNonSaturday30, groupNonSaturday30.length, null, null);
+
             // Helper to format statistics with a heading.
-            function formatStats(heading, stats) {
+            function formatStats(heading, stats, count) {
                 return `<h3>${heading}</h3>
                         <ul>
+                          <li>Count: ${count}</li>
                           <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>
-                          <li>Mean Time: ${stats.mean ? stats.mean.toFixed(2) + " s" : "N/A"}</li>
+                          <li>Mean: ${stats.mean ? stats.mean.toFixed(2) + " s" : "N/A"}</li>
                           <li>Standard Deviation: ${stats.stdDev ? stats.stdDev.toFixed(2) + " s" : "N/A"}</li>
-                          <li>Median Time: ${stats.median ? stats.median.toFixed(2) + " s" : "N/A"}</li>
-                          <li>Mode Time: ${stats.mode ? stats.mode.toFixed(2) + " s" : "N/A"}</li>
+                          <li>Median: ${stats.median ? stats.median.toFixed(0) + " s" : "N/A"}</li>
+                          <li>Mode: ${stats.mode ? stats.mode.toFixed(0) + " s" : "N/A"}</li>
                         </ul>`;
             }
 
-            // Update the various stats containers with an appropriate heading:
-            const overallEl = document.getElementById("overallStatistics");
-            if (overallEl) overallEl.innerHTML = formatStats("Overall Statistics", statsOverall);
-
+            // Update Last Week statistics (row 2, first column):
             const stats7El = document.getElementById("stats7");
-            if (stats7El) stats7El.innerHTML = formatStats("Last Week's Puzzles", stats7);
+            if (stats7El) {
+                stats7El.innerHTML =
+                    formatStats("Non-Saturday Puzzles", stats7Non, groupNonSaturday7.length) +
+                    formatStats("Saturday Puzzles", stats7Sat, groupSaturday7.length) +
+                    formatStats("All Puzzles", stats7, group7.length);
+            }
 
+            // Update Last Month statistics (row 2, second column):
             const stats30El = document.getElementById("stats30");
-            if (stats30El) stats30El.innerHTML = formatStats("Last Month's Puzzles", stats30);
+            if (stats30El) {
+                stats30El.innerHTML =
+                    formatStats("Non-Saturday Puzzles", stats30Non, groupNonSaturday30.length) +
+                    formatStats("Saturday Puzzles", stats30Sat, groupSaturday30.length) +
+                    formatStats("All Puzzles", stats30, group30.length);
+            }
 
+            // Update Last Year statistics (row 2, third column):
             const statsSat365El = document.getElementById("statsSaturday365");
-            if (statsSat365El) statsSat365El.innerHTML = formatStats("Last Year's Saturday Puzzles", statsSaturday365);
-
+            if (statsSat365El) statsSat365El.innerHTML = formatStats("Non-Saturday Puzzles", statsNonSaturday365, groupNonSaturday365.length);
             const statsNonSat365El = document.getElementById("statsNonSaturday365");
-            if (statsNonSat365El) statsNonSat365El.innerHTML = formatStats("Last Year's Non-Saturday Puzzles", statsNonSaturday365);
+            if (statsNonSat365El) statsNonSat365El.innerHTML = formatStats("Saturday Puzzles", statsSaturday365, groupSaturday365.length);
+            const statsAllYearEl = document.getElementById("statsAllYear");
+            if (statsAllYearEl) statsAllYearEl.innerHTML = formatStats("All Puzzles", stats365, group365.length);
 
-            const statsSatAllEl = document.getElementById("statsSaturdayAll");
-            if (statsSatAllEl) statsSatAllEl.innerHTML = formatStats("All Time Saturday Puzzles", statsSaturdayAll);
-
+            // Update All Time statistics (row 2, fourth column):
+            const statsSaturdayAllEl = document.getElementById("statsSaturdayAll");
+            if (statsSaturdayAllEl) statsSaturdayAllEl.innerHTML = formatStats("Non-Saturday Puzzles", statsNonSaturdayAll, groupNonSaturdayAll.length);
             const statsNonSatAllEl = document.getElementById("statsNonSaturdayAll");
-            if (statsNonSatAllEl) statsNonSatAllEl.innerHTML = formatStats("All Time Non-Saturday Puzzles", statsNonSaturdayAll);
+            if (statsNonSatAllEl) statsNonSatAllEl.innerHTML = formatStats("Saturday Puzzles", statsSaturdayAll, groupSaturdayAll.length);
+            const statsAllTimeEl = document.getElementById("statsAllTime");
+            if (statsAllTimeEl) statsAllTimeEl.innerHTML = formatStats("All Puzzles", statsOverall, groupAll.length);
         });
     }
 
