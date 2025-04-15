@@ -45,6 +45,18 @@ function initAutoNavigation() {
 
     // Create a Date object from the extracted date
     const currentDate = new Date(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`);
+
+    // Check if the current puzzle date is today. If so, skip auto-navigation.
+    const today = new Date();
+    if (
+        currentDate.getFullYear() === today.getFullYear() &&
+        currentDate.getMonth() === today.getMonth() &&
+        currentDate.getDate() === today.getDate()
+    ) {
+        console.log("Today's puzzle active. Skipping auto-navigation back.");
+        return;
+    }
+
     // Decrement the date by one day
     const prevDate = new Date(currentDate);
     prevDate.setDate(currentDate.getDate() - 1);
@@ -78,10 +90,29 @@ function initAutoNavigation() {
     const observer = new MutationObserver(() => {
         const targetElement = document.querySelector(`.${targetClass.replace(/\s+/g, '.')}`);
         if (targetElement) {
-            console.log("Modal detected. Redirecting in 2 seconds to:", prevUrl);
+            // Record the solve time before navigating using the second bold element
+            const solveTimeElements = document.querySelectorAll('div.xwd__center.mini__congrats-modal--message span.xwd__bold');
+            let solveTimeText = (solveTimeElements && solveTimeElements.length > 1)
+                ? solveTimeElements[1].innerText.trim()
+                : null;
+            // Convert time format if in seconds form (e.g., "34 seconds")
+            if (solveTimeText && solveTimeText.toLowerCase().includes('second')) {
+                const seconds = parseInt(solveTimeText);
+                if (!isNaN(seconds)) {
+                    const minutes = Math.floor(seconds / 60);
+                    const remSeconds = seconds % 60;
+                    solveTimeText = `${minutes}:${remSeconds.toString().padStart(2, '0')}`;
+                }
+            }
+            // Format date as MM/DD/YYYY
+            const puzzleDateStr = `${currentDate.getMonth() + 1}/${currentDate.getDate()}/${currentDate.getFullYear()}`;
+            chrome.runtime.sendMessage({ date: puzzleDateStr, time: solveTimeText }, (response) => {
+                console.log("Puzzle data recorded (auto-navigation mode).");
+            });
+            console.log("Modal detected. Redirecting in 1.5 seconds to:", prevUrl);
             setTimeout(() => {
                 window.location.href = prevUrl;
-            }, 2000);
+            }, 1500);
             observer.disconnect();
         }
     });

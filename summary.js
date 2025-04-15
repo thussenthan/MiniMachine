@@ -85,6 +85,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     zoom: {
                         wheel: { enabled: true },
                         drag: { enabled: true }, // allows drag-selection for zooming
+                        pinch: { enabled: true }, // pinch-zooming on touch devices
                         mode: 'x'              // zoom along the x-axis
                     },
                     pan: {
@@ -361,6 +362,41 @@ document.addEventListener("DOMContentLoaded", () => {
                 filteredPuzzles.forEach((puzzle) => {
                     container.appendChild(createPuzzleListItem(puzzle));
                 });
+            }
+            // For last week, append two line breaks and then a subheading message AFTER the list if less than 7 puzzles.
+            if (days === 7) {
+                // Remove any existing reminder and break elements.
+                const existingReminder = document.getElementById("reminder-message");
+                if (existingReminder) existingReminder.remove();
+                const existingBreak1 = document.getElementById("reminder-break1");
+                if (existingBreak1) existingBreak1.remove();
+                const existingBreak2 = document.getElementById("reminder-break2");
+                if (existingBreak2) existingBreak2.remove();
+                if (filteredPuzzles.length < 7) {
+                    // Compute the most recent incomplete puzzle from all puzzles.
+                    const allPuzzles = data.puzzles;
+                    const incompletePuzzles = allPuzzles.filter(p => !p.time || p.time.trim() === "");
+                    incompletePuzzles.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    let linkTarget = "#";
+                    if (incompletePuzzles.length > 0) {
+                        const newestPuzzleDate = new Date(incompletePuzzles[0].date);
+                        const formattedDate = newestPuzzleDate.getFullYear() + "/" +
+                            ("0" + (newestPuzzleDate.getMonth() + 1)).slice(-2) + "/" +
+                            ("0" + newestPuzzleDate.getDate()).slice(-2);
+                        linkTarget = "https://www.nytimes.com/crosswords/game/mini/" + formattedDate;
+                    }
+                    const br1 = document.createElement("br");
+                    br1.id = "reminder-break1";
+                    container.parentElement.appendChild(br1);
+                    const br2 = document.createElement("br");
+                    br2.id = "reminder-break2";
+                    container.parentElement.appendChild(br2);
+                    const reminder = document.createElement("h3");
+                    reminder.id = "reminder-message";
+                    reminder.innerHTML = "Alright, you cheeky chappie—time to hop to it! Grab your cuppa, give those New York Times mini puzzles a go, and remember: <i>\"If you're going through hell, keep going.\"</i><br>Now, show those puzzles who's boss!<br><br>Blimey, get started already <a href='" + linkTarget + "' target='_blank'>here</a> mate!";
+                    reminder.style.textAlign = "center";  // center the text
+                    container.parentElement.appendChild(reminder);
+                }
             }
         });
     }
