@@ -27,7 +27,7 @@ function removeNavButton() {
     }
 }
 
-// Mode 1: Auto-navigation functionality.
+// State 0: Auto-navigation functionality.
 function initAutoNavigation() {
     console.log("Auto-navigation mode active. Current URL:", window.location.href);
 
@@ -119,7 +119,7 @@ function initAutoNavigation() {
     observer.observe(document.body, { childList: true, subtree: true });
 }
 
-// Mode 2: Scraping mode (gathers data without auto-navigation)
+// State 1: Scraping mode (gathers data without auto-navigation)
 function runScrape() {
     console.log("Scrape mode active. Gathering puzzle data.");
     // Remove any navigation button for scraping mode.
@@ -155,8 +155,8 @@ function runScrape() {
                     // If the next puzzle date is today or in the future, stop auto-navigation.
                     if (currentPuzzleDate > currentDateOnly) {
                         console.log("Reached current date. Stopping auto-navigation.");
-                        chrome.storage.local.set({ scrapeMode: false }, () => {
-                            chrome.runtime.sendMessage({ action: "updateMode", scrapeMode: false });
+                        chrome.storage.local.set({ mode: 0 }, () => {
+                            chrome.runtime.sendMessage({ action: "updateMode", mode: 0 });
                             // Default back to auto-navigation mode
                             initAutoNavigation();
                         });
@@ -174,22 +174,126 @@ function runScrape() {
         });
 }
 
-// Listen for messages from the popup to automatically update the mode immediately.
+// State 2: SonicScraper mode function
+function runSonicScraper() {
+    removeNavButton();
+
+    const archiveStartYear = 2014;
+    const archiveStartMonth = 8;
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+
+    let pendingPuzzles = []; // Blue star puzzles needing time scraping.
+    let puzzleList = [];     // All puzzles will have time null initially.
+
+    // Modified: Always add to puzzleList; if blue star exists, also queue for further scraping.
+    async function fetchArchive(year, month) {
+        let monthStr = String(month).padStart(2, '0');
+        let url = `https://www.nytimes.com/crosswords/archive/mini/${year}/${monthStr}`;
+        console.log("Opening archive in new tab:", url);
+        try {
+            const response = await fetch(url);
+            const html = await response.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(html, 'text/html');
+            let items = doc.querySelectorAll('.archive_calendar-item');
+            items.forEach(item => {
+                let progressIcon = item.querySelector('.progressIconContent');
+                let link = item.querySelector('a.puzzleAction');
+                let dayEl = item.querySelector('.date');
+                if (!dayEl || !link) return;
+                let day = dayEl.textContent.trim();
+                let puzzleDateStr = `${month}/${day}/${year}`;
+                // Always add the puzzle to puzzleList with time set to null.
+                puzzleList.push({ date: puzzleDateStr, time: null });
+                // If blue star exists, also add to pendingPuzzles for later time extraction.
+                if (progressIcon && progressIcon.classList.contains('miniProgressBlueStar')) {
+                    pendingPuzzles.push({
+                        year, month, day,
+                        url: "https://www.nytimes.com" + link.getAttribute('href'),
+                        dateStr: puzzleDateStr
+                    });
+                }
+            });
+        } catch (err) {
+            console.error("Error fetching archive for", year, month, err);
+        }
+    }
+
+    let fetchPromises = [];
+    let year = archiveStartYear;
+    let month = archiveStartMonth;
+    while (year < currentYear || (year === currentYear && month <= currentMonth)) {
+        fetchPromises.push(fetchArchive(year, month));
+        month++;
+        if (month > 12) { month = 1; year++; }
+    }
+
+    Promise.all(fetchPromises).then(() => {
+        console.log("Archive scraping complete. Pending puzzles:", pendingPuzzles);
+        function scrapePending(i) {
+            if (i >= pendingPuzzles.length) {
+                console.log("Finished scraping pending puzzles. Final puzzleList:", puzzleList);
+                return;
+            }
+            let puzzle = pendingPuzzles[i];
+            console.log("Scraping puzzle:", puzzle.url);
+            fetch(puzzle.url)
+                .then(res => res.text())
+                .then(html => {
+                    let parser = new DOMParser();
+                    let doc = parser.parseFromString(html, 'text/html');
+                    let solveTimeElements = doc.querySelectorAll('span.xwd__bold');
+                    let solveTimeText = (solveTimeElements && solveTimeElements.length > 1)
+                        ? solveTimeElements[1].textContent.trim()
+                        : null;
+                    if (solveTimeText && solveTimeText.toLowerCase().includes('second')) {
+                        const seconds = parseInt(solveTimeText);
+                        if (!isNaN(seconds)) {
+                            const minutes = Math.floor(seconds / 60);
+                            const remSeconds = seconds % 60;
+                            solveTimeText = `${minutes}:${remSeconds.toString().padStart(2, '0')}`;
+                        }
+                    }
+                    let idx = puzzleList.findIndex(p => p.date === puzzle.dateStr);
+                    if (idx >= 0) {
+                        puzzleList[idx].time = solveTimeText;
+                    }
+                    console.log(`Puzzle on ${puzzle.dateStr} solved in ${solveTimeText}`);
+                    scrapePending(i + 1);
+                })
+                .catch(err => {
+                    console.error("Error scraping puzzle:", err);
+                    scrapePending(i + 1);
+                });
+        }
+        scrapePending(0);
+    });
+}
+
+// Listen for messages from the popup to automatically update the mode state immediately.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "updateMode") {
-        console.log("Content script received updateMode message; new scrapeMode:", message.scrapeMode);
-        if (message.scrapeMode) {
-            runScrape();
-        } else {
-            initAutoNavigation();
-        }
+        chrome.storage.local.set({ mode: message.mode }, () => {
+            chrome.runtime.sendMessage({ action: "updateMode", mode: message.mode });
+        });
+    }
+    if (message.mode === 1) {
+        runScrape();
+    } else if (message.mode === 2) {
+        runSonicScraper();
+    } else {
+        initAutoNavigation();
     }
 });
 
-// On initial load: Check mode in storage and run the corresponding function.
-chrome.storage.local.get({ scrapeMode: false }, (data) => {
-    if (data.scrapeMode) {
+// On initial load: Check mode state in storage and run the corresponding function.
+chrome.storage.local.get({ mode: 0 }, (data) => {
+    if (data.mode === 1) {
         runScrape();
+    } else if (data.mode === 2) {
+        runSonicScraper();
     } else {
         initAutoNavigation();
     }

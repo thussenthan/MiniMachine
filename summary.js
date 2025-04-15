@@ -525,7 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const startDate = new Date("2014-08-21");
             const today = new Date();
             const millisecondsPerDay = 1000 * 60 * 60 * 24;
-            const totalPossiblePuzzles = Math.floor((today - startDate) / millisecondsPerDay);
+            const totalPossiblePuzzles = Math.floor((today - startDate) / millisecondsPerDay) + 1; // Total days since start date + 1 for today.
 
             // Define groups:
             const group7 = filterPuzzlesByDays(puzzles, 7);
