@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const puzzleDate = new Date(puzzle.date);
         if (puzzleDate.getDay() === 6) {  // Saturday
-            li.innerHTML = `<strong>Date: ${puzzle.date}, Time: ${puzzle.time}</strong>`;
+            li.innerHTML = `<strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
         }

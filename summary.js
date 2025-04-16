@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const puzzleDate = new Date(puzzle.date);
         if (puzzleDate.getDay() === 6) {  // Saturday
-            li.innerHTML = `<strong>Date: ${puzzle.date}, Time: ${puzzle.time}</strong>`;
+            li.innerHTML = `<strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
         }
@@ -60,11 +60,11 @@ document.addEventListener("DOMContentLoaded", () => {
         overlay.style.justifyContent = "center";
         overlay.style.zIndex = "10000";
 
-        // Create a container for the chart with a white background, taking 75% of viewport.
+        // Create a container for the chart with a dark background instead of white.
         const container = document.createElement("div");
         container.style.width = "75vw";
         container.style.height = "75vh";
-        container.style.backgroundColor = "white";
+        container.style.backgroundColor = "#000";  // changed from white to black
         container.style.padding = "10px";
         container.style.boxSizing = "border-box";
 
@@ -98,7 +98,26 @@ document.addEventListener("DOMContentLoaded", () => {
         // Merge with existing options (a simple shallow merge, adjust as needed)
         options.plugins = Object.assign({}, options.plugins, zoomOptions.plugins);
 
-        new Chart(fullCanvas, { type: chartType, data: data, options: options });
+        new Chart(fullCanvas, {
+            type: chartType,
+            data: data,
+            options: Object.assign({}, options, {
+                // Ensure the chart itself uses dark mode settings:
+                scales: {
+                    x: {
+                        // Force x-axis title off for zoomed charts
+                        title: { display: false, text: "", color: "#fff" },
+                        grid: { color: "rgba(255,255,255,0.2)" },
+                        ticks: { color: "#fff" }
+                    },
+                    y: {
+                        title: { display: true, text: options.scales?.y?.title?.text || "Time (sec)", color: "#fff" },
+                        grid: { color: "rgba(255,255,255,0.2)" },
+                        ticks: { color: "#fff" }
+                    }
+                }
+            })
+        });
 
         // Exit zoom by clicking anywhere on the overlay outside of the container.
         overlay.addEventListener("click", (e) => {
@@ -215,16 +234,16 @@ document.addEventListener("DOMContentLoaded", () => {
                                 label: "Time (sec)",
                                 data: lineData,
                                 fill: false,
-                                borderColor: "blue",
-                                backgroundColor: "blue",
+                                borderColor: "#1f77b4", // changed from "DeepSkyBlue"
+                                backgroundColor: "#aec7e8", // changed from "DodgerBlue"
                                 order: 2
                             },
                             {
                                 label: "Trend Line",
                                 data: trendLineData,
                                 fill: false,
-                                borderColor: "red",
-                                backgroundColor: "red",
+                                borderColor: "#ff7f0e", // changed from "Tomato"
+                                backgroundColor: "#ff7f0e", // changed from "Tomato"
                                 pointRadius: 0,
                                 order: 1
                             }
@@ -232,8 +251,16 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     options: {
                         scales: {
-                            x: { title: { display: true } },
-                            y: { title: { display: true, text: "Time (sec)" } }
+                            x: {
+                                title: { display: false, text: "", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            },
+                            y: {
+                                title: { display: true, text: "Time (sec)", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            }
                         },
                         plugins: {
                             legend: { display: false },
@@ -254,24 +281,32 @@ document.addEventListener("DOMContentLoaded", () => {
                                 label: "Time (sec)",
                                 data: lineData,
                                 fill: false,
-                                borderColor: "blue",
-                                backgroundColor: "blue",
+                                borderColor: "#1f77b4", // changed from "DeepSkyBlue"
+                                backgroundColor: "#aec7e8", // changed from "DodgerBlue"
                                 order: 2
                             },
                             {
                                 label: "Trend Line",
                                 data: trendLineData,
                                 fill: false,
-                                borderColor: "red",
-                                backgroundColor: "red",
+                                borderColor: "#ff7f0e", // changed from "Tomato"
+                                backgroundColor: "#ff7f0e", // changed from "Tomato"
                                 pointRadius: 0,
                                 order: 1
                             }
                         ]
                     }, {
                         scales: {
-                            x: { title: { display: true, text: "Date" } },
-                            y: { title: { display: true, text: "Time (sec)" } }
+                            x: {
+                                title: { display: false, text: "", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            },
+                            y: {
+                                title: { display: true, text: "Time (sec)", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            }
                         },
                         plugins: {
                             legend: { display: false },
@@ -295,14 +330,22 @@ document.addEventListener("DOMContentLoaded", () => {
                         datasets: [{
                             label: "Frequency",
                             data: histogramBins,
-                            backgroundColor: "green",
-                            borderColor: "green"
+                            backgroundColor: "#2ca02c", // changed from "ForestGreen"
+                            borderColor: "#2ca02c"      // changed from "ForestGreen"
                         }]
                     },
                     options: {
                         scales: {
-                            x: { title: { display: true, text: "Puzzle Time Bins (s)" } },
-                            y: { title: { display: true, text: "Frequency" } }
+                            x: {
+                                title: { display: true, text: "Puzzle Time Bins (s)", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            },
+                            y: {
+                                title: { display: true, text: "Frequency", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            }
                         },
                         plugins: { legend: { display: false } }
                     }
@@ -313,13 +356,21 @@ document.addEventListener("DOMContentLoaded", () => {
                         datasets: [{
                             label: "Frequency",
                             data: histogramBins,
-                            backgroundColor: "green",
-                            borderColor: "green"
+                            backgroundColor: "#2ca02c", // changed from "ForestGreen"
+                            borderColor: "#2ca02c"      // changed from "ForestGreen"
                         }]
                     }, {
                         scales: {
-                            x: { title: { display: true, text: "Puzzle Time Bins (s)" } },
-                            y: { title: { display: true, text: "Frequency" } }
+                            x: {
+                                title: { display: true, text: "Puzzle Time Bins (s)", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            },
+                            y: {
+                                title: { display: true, text: "Frequency", color: "#fff" },
+                                grid: { color: "rgba(255,255,255,0.2)" },
+                                ticks: { color: "#fff" }
+                            }
                         },
                         plugins: { legend: { display: false } }
                     });
@@ -574,13 +625,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Helper to format statistics with a heading.
             function formatStats(heading, stats, count) {
+                // If the heading is "Saturday Puzzles", make "Saturday" italicized.
+                let displayHeading = heading;
+                if (heading === "Saturday Puzzles") {
+                    displayHeading = "<em>Saturday</em> Puzzles";
+                }
                 if (stats.mean === null) {
-                    return `<h3>${heading}</h3>
+                    return `<h3>${displayHeading}</h3>
                  <ul>
                      <li>No valid puzzle times available.</li>
                  </ul>`;
                 }
-                return `<h3>${heading}</h3>
+                return `<h3>${displayHeading}</h3>
             <ul>
               <li>Count: ${count}</li>
               <li>Completed Percentage: ${stats.completedPercentage.toFixed(2)}%</li>

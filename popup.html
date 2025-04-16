@@ -5,20 +5,40 @@
     <meta charset="UTF-8">
     <title>MiniMachine</title>
     <style>
+        :root {
+            --primary-bg: #121212;
+            --button-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --accent-color: #ff4081;
+        }
+
         body {
-            font-family: Arial, Helvetica, sans-serif;
-            padding: 10px;
-            min-width: 250px;
+            background: var(--primary-bg);
+            color: var(--text-color);
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
         }
 
         button {
+            background: var(--button-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.3s ease;
             margin: 5px 0;
-            padding: 5px 10px;
+        }
+
+        button:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
         }
 
         h1,
         h2 {
-            margin: 10px 0 5px;
+            color: var(--text-color);
         }
 
         ul {
@@ -26,17 +46,40 @@
             padding: 0;
             max-height: 150px;
             overflow-y: auto;
+            color: var(--text-color);
         }
 
         li {
-            padding: 3px 0;
-            border-bottom: 1px solid #ccc;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Custom scrollbar styling */
+        /* For Webkit browsers */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: #444;
+            border-radius: 6px;
+            border: 3px solid #000;
+        }
+
+        /* For Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #444 #000;
         }
     </style>
 </head>
 
 <body>
-    <h1>MiniMachine <img src="icons/logo_transparent.png" alt="Logo"
+    <h1>MiniMachine <img src="icons/logo_darkmode.png" alt="Logo"
             style="width: 30px; height: 30px; vertical-align: middle;"></h1>
     <button id="getData">Get Data</button>
     <button id="goToSummary">Go to Summary</button>
