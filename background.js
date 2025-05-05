@@ -5,7 +5,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             let puzzles = result.puzzles;
 
             // Check if an entry for this date already exists and remove it.
-            const existingIndex = puzzles.findIndex(puzzle => puzzle.date === message.date);
+            const existingIndex = puzzles.findIndex(
+                (puzzle) => puzzle.date === message.date
+            );
             if (existingIndex !== -1) {
                 puzzles.splice(existingIndex, 1);
             }

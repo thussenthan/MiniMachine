@@ -10,9 +10,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Check current mode and update the button label and icon accordingly
     chrome.storage.local.get({ mode: 0 }, (data) => {
         if (data.mode === undefined) {
-            chrome.storage.local.set({ mode: 0 });  // Set to auto-navigation (0) by default
+            chrome.storage.local.set({ mode: 0 }); // Set to auto-navigation (0) by default
         }
-        getDataButton.textContent = data.mode === 1 ? "Stop Getting Data" : "Get Data";
+        getDataButton.textContent =
+            data.mode === 1 ? "Stop Getting Data" : "Get Data";
         if (data.mode === 2) {
             SonicScraperButton.innerHTML = `<img src="icons/sonic-roll.gif" alt="SonicScraper On" style="width:25px;height:25px; vertical-align: middle;">`;
         } else {
@@ -24,18 +25,29 @@ document.addEventListener("DOMContentLoaded", () => {
     if (getDataButton) {
         getDataButton.addEventListener("click", () => {
             chrome.storage.local.get({ mode: 0 }, (data) => {
-                const newMode = data.mode === 1 ? 0 : 1;  // Toggle between 0 and 1
+                const newMode = data.mode === 1 ? 0 : 1; // Toggle between 0 and 1
                 console.log(`Toggling mode. New mode: ${newMode}`);
                 chrome.storage.local.set({ mode: newMode }, () => {
-                    getDataButton.textContent = newMode === 1 ? "Stop Getting Data" : "Get Data";
-                    console.log(`Mode set to: ${newMode === 1 ? 'scraping' : 'auto-navigation'}`);
+                    getDataButton.textContent =
+                        newMode === 1 ? "Stop Getting Data" : "Get Data";
+                    console.log(
+                        `Mode set to: ${
+                            newMode === 1 ? "scraping" : "auto-navigation"
+                        }`
+                    );
 
                     // Notify the active content script to update its behavior immediately
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        if (tabs.length > 0) {
-                            chrome.tabs.sendMessage(tabs[0].id, { action: "updateMode", mode: newMode });
+                    chrome.tabs.query(
+                        { active: true, currentWindow: true },
+                        (tabs) => {
+                            if (tabs.length > 0) {
+                                chrome.tabs.sendMessage(tabs[0].id, {
+                                    action: "updateMode",
+                                    mode: newMode,
+                                });
+                            }
                         }
-                    });
+                    );
                 });
             });
         });
@@ -45,8 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (SonicScraperButton) {
         SonicScraperButton.addEventListener("click", () => {
             chrome.storage.local.get({ mode: 0 }, (data) => {
-                const newSonicMode = data.mode === 2 ? 0 : 2;  // Toggle between 0 and 2
-                console.log(`Toggling SonicScraper mode. New mode: ${newSonicMode}`);
+                const newSonicMode = data.mode === 2 ? 0 : 2; // Toggle between 0 and 2
+                console.log(
+                    `Toggling SonicScraper mode. New mode: ${newSonicMode}`
+                );
                 chrome.storage.local.set({ mode: newSonicMode }, () => {
                     if (newSonicMode === 2) {
                         // When toggled ON, open the archive in a new tab and display the gif
@@ -55,13 +69,23 @@ document.addEventListener("DOMContentLoaded", () => {
                         // When toggled off, display the static image with the same fixed dimensions
                         SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
                     }
-                    console.log(`SonicScraper mode set to: ${newSonicMode === 2 ? 'on' : 'off'}`);
+                    console.log(
+                        `SonicScraper mode set to: ${
+                            newSonicMode === 2 ? "on" : "off"
+                        }`
+                    );
                     // Notify the active content script to update its behavior immediately
-                    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                        if (tabs.length > 0) {
-                            chrome.tabs.sendMessage(tabs[0].id, { action: "updateMode", mode: newSonicMode });
+                    chrome.tabs.query(
+                        { active: true, currentWindow: true },
+                        (tabs) => {
+                            if (tabs.length > 0) {
+                                chrome.tabs.sendMessage(tabs[0].id, {
+                                    action: "updateMode",
+                                    mode: newSonicMode,
+                                });
+                            }
                         }
-                    });
+                    );
                 });
             });
         });
@@ -86,7 +110,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function createPuzzleListItem(puzzle) {
         const li = document.createElement("li");
         const puzzleDate = new Date(puzzle.date);
-        if (puzzleDate.getDay() === 6) {  // Saturday
+        if (puzzleDate.getDay() === 6) {
+            // Saturday
             li.innerHTML = `<strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
@@ -131,9 +156,10 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.get({ puzzles: [] }, (result) => {
             const puzzles = result.puzzles;
             const processed = puzzles.length;
-            const startDate = new Date('2014-08-21');
+            const startDate = new Date("2014-08-21");
             const today = new Date();
-            const totalDays = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const totalDays =
+                Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
             const percentage = ((processed / totalDays) * 100).toFixed(1);
             const popupStats = document.getElementById("statistics");
             if (popupStats) {
@@ -153,4 +179,3 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
-
