@@ -10,7 +10,7 @@
                 --card-bg: #1e1e1e;
                 --text-color: #e0e0e0;
                 --border-color: #333;
-                --accent-color: #ff4081;
+                --accent-color: #608efa;
             }
 
             /* Modern dark mode body */
@@ -119,15 +119,32 @@
                 scrollbar-width: thin;
                 scrollbar-color: #444 #000;
             }
+
+            /* New: header inline layout */
+            .header-inline {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 20px;
+            }
+            .inline-stats {
+                font-size: 1.2rem;
+                line-height: 1.2;
+                color: var(--accent-color);
+                white-space: nowrap;
+            }
         </style>
         <!-- Reference local Chart.js -->
-        <script src="chart.umd.js"></script>
+        <script src="chartjs/chart.umd.js"></script>
         <!-- Include the Chart.js Zoom Plugin -->
-        <script src="chartjs-plugin-zoom.js"></script>
+        <script src="chartjs/chartjs-plugin-zoom.js"></script>
     </head>
 
     <body>
-        <h1>Your MiniMachine Summary</h1>
+        <div class="header-inline">
+            <h1>Your MiniMachine Summary</h1>
+            <div id="inlineStats" class="inline-stats"></div>
+        </div>
         <div id="summaryGrid">
             <!-- Row 1: Puzzle Lists -->
             <div class="grid-item" id="lastWeekPuzzles">
@@ -194,14 +211,51 @@
             </div>
         </div>
 
-        <div id="actionButtons">
+        <div
+            id="actionButtons"
+            style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+            "
+        >
             <button id="exportCSV">Export Data to CSV</button>
             <button id="clearData">Clear All Data</button>
             <button id="shareStats">Share Stats</button>
-            <br />
-            Import CSV:
-            <input type="file" id="importCSV" accept=".csv" />
+            <input
+                type="file"
+                id="importCSV"
+                accept=".csv"
+                style="display: none"
+            />
+            <button
+                id="importCSVButton"
+                onclick="document.getElementById('importCSV').click()"
+            >
+                Import CSV
+            </button>
             <span id="importStatus" style="color: green"></span>
+            <div
+                style="
+                    margin-left: auto;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                "
+            >
+                <span style="display: flex; gap: 15px; align-items: center">
+                    <b>All for the love of NY Times mini crossword puzzles!</b>
+                    <a
+                        href="https://thussenthan.github.io/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style="color: inherit; text-decoration: underline"
+                    >
+                        © 2025 Thussenthan Walter-Angelo
+                    </a>
+                </span>
+            </div>
         </div>
 
         <script src="summary.js"></script>

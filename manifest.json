@@ -4,9 +4,9 @@
     "version": "1.0",
     "description": "Auto-navigates to next puzzle after solve & extracts all puzzle times and summary statistics from NYT mini puzzles.",
     "icons": {
-        "16": "icons/logo_darkmode.png",
-        "48": "icons/logo_darkmode.png",
-        "128": "icons/logo_darkmode.png"
+        "16": "icons/logo.png",
+        "48": "icons/logo.png",
+        "128": "icons/logo.png"
     },
     "permissions": ["storage", "tabs", "scripting"],
     "host_permissions": ["https://www.nytimes.com/*"],

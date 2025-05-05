@@ -21,75 +21,57 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Toggle Get Data mode: when active, scraping mode is on (mode=1)
-    if (getDataButton) {
-        getDataButton.addEventListener("click", () => {
-            chrome.storage.local.get({ mode: 0 }, (data) => {
-                const newMode = data.mode === 1 ? 0 : 1; // Toggle between 0 and 1
-                console.log(`Toggling mode. New mode: ${newMode}`);
-                chrome.storage.local.set({ mode: newMode }, () => {
-                    getDataButton.textContent =
-                        newMode === 1 ? "Stop Getting Data" : "Get Data";
-                    console.log(
-                        `Mode set to: ${
-                            newMode === 1 ? "scraping" : "auto-navigation"
-                        }`
-                    );
-
-                    // Notify the active content script to update its behavior immediately
-                    chrome.tabs.query(
-                        { active: true, currentWindow: true },
-                        (tabs) => {
-                            if (tabs.length > 0) {
-                                chrome.tabs.sendMessage(tabs[0].id, {
-                                    action: "updateMode",
-                                    mode: newMode,
-                                });
-                            }
+    // Toggle Get Data (mode 1) <-> off (mode 0)
+    getDataButton.addEventListener("click", () => {
+        chrome.storage.local.get({ mode: 0 }, (data) => {
+            const newMode = data.mode === 1 ? 0 : 1;
+            chrome.storage.local.set({ mode: newMode }, () => {
+                getDataButton.textContent =
+                    newMode === 1 ? "Stop Getting Data" : "Get Data";
+                // always turn SonicScraper off
+                SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
+                // notify content
+                chrome.tabs.query(
+                    { active: true, currentWindow: true },
+                    (tabs) => {
+                        if (tabs[0]) {
+                            chrome.tabs.sendMessage(tabs[0].id, {
+                                action: "updateMode",
+                                mode: newMode,
+                            });
                         }
-                    );
-                });
-            });
-        });
-    }
-
-    // Toggle SonicScraper mode: toggles between auto-navigation (0) and SonicScraper (mode=2)
-    if (SonicScraperButton) {
-        SonicScraperButton.addEventListener("click", () => {
-            chrome.storage.local.get({ mode: 0 }, (data) => {
-                const newSonicMode = data.mode === 2 ? 0 : 2; // Toggle between 0 and 2
-                console.log(
-                    `Toggling SonicScraper mode. New mode: ${newSonicMode}`
-                );
-                chrome.storage.local.set({ mode: newSonicMode }, () => {
-                    if (newSonicMode === 2) {
-                        // When toggled ON, open the archive in a new tab and display the gif
-                        SonicScraperButton.innerHTML = `<img src="icons/sonic-roll.gif" alt="SonicScraper On" style="width:25px;height:25px; vertical-align: middle;">`;
-                    } else {
-                        // When toggled off, display the static image with the same fixed dimensions
-                        SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
                     }
-                    console.log(
-                        `SonicScraper mode set to: ${
-                            newSonicMode === 2 ? "on" : "off"
-                        }`
-                    );
-                    // Notify the active content script to update its behavior immediately
-                    chrome.tabs.query(
-                        { active: true, currentWindow: true },
-                        (tabs) => {
-                            if (tabs.length > 0) {
-                                chrome.tabs.sendMessage(tabs[0].id, {
-                                    action: "updateMode",
-                                    mode: newSonicMode,
-                                });
-                            }
-                        }
-                    );
-                });
+                );
             });
         });
-    }
+    });
+
+    // Toggle SonicScraper (mode 2) <-> off (mode 0)
+    SonicScraperButton.addEventListener("click", () => {
+        chrome.storage.local.get({ mode: 0 }, (data) => {
+            const newMode = data.mode === 2 ? 0 : 2;
+            chrome.storage.local.set({ mode: newMode }, () => {
+                if (newMode === 2) {
+                    SonicScraperButton.innerHTML = `<img src="icons/sonic-rolling.gif" alt="SonicScraper On" style="width:25px;height:25px; vertical-align: middle;">`;
+                } else {
+                    SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
+                }
+                // always turn Get Data off
+                getDataButton.textContent = "Get Data";
+                chrome.tabs.query(
+                    { active: true, currentWindow: true },
+                    (tabs) => {
+                        if (tabs[0]) {
+                            chrome.tabs.sendMessage(tabs[0].id, {
+                                action: "updateMode",
+                                mode: newMode,
+                            });
+                        }
+                    }
+                );
+            });
+        });
+    });
 
     // Go to Summary page: Open the summary page in a new tab
     goToSummaryButton.addEventListener("click", () => {

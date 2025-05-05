@@ -27,15 +27,24 @@ function removeNavButton() {
     }
 }
 
+let navObserver; // track the auto-nav observer
+
+function resetModes() {
+    removeNavButton();
+    if (navObserver) {
+        navObserver.disconnect();
+        navObserver = null;
+    }
+    // any other cleanup (timers, intervals) can go here
+}
+
 // State 0: Auto-navigation functionality.
 function initAutoNavigation() {
+    resetModes();
     console.log(
         "Auto-navigation mode active. Current URL:",
         window.location.href
     );
-
-    // Ensure any previous nav button is removed
-    removeNavButton();
 
     // Extract the date from the URL (YYYY/MM/DD)
     const url = window.location.href;
@@ -91,10 +100,12 @@ function initAutoNavigation() {
     console.log("Navigation button added.");
 
     // Auto-navigate when the modal is detected
-    const targetClass = "xwd__center mini__congrats-modal--message";
-    const observer = new MutationObserver(() => {
+    navObserver = new MutationObserver(() => {
         const targetElement = document.querySelector(
-            `.${targetClass.replace(/\s+/g, ".")}`
+            `.${"xwd__center mini__congrats-modal--message".replace(
+                /\s+/g,
+                "."
+            )}`
         );
         if (targetElement) {
             // Record the solve time before navigating using the second bold element
@@ -136,17 +147,16 @@ function initAutoNavigation() {
             setTimeout(() => {
                 window.location.href = prevUrl;
             }, 1500);
-            observer.disconnect();
+            navObserver.disconnect();
         }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    navObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 // State 1: Scraping mode (gathers data without auto-navigation)
 function runScrape() {
+    resetModes();
     console.log("Scrape mode active. Gathering puzzle data.");
-    // Remove any navigation button for scraping mode.
-    removeNavButton();
 
     // Extract date parts from URL.
     const urlParts = window.location.pathname.split("/");
@@ -216,7 +226,7 @@ function runScrape() {
 
 // State 2: SonicScraper mode function
 function runSonicScraper() {
-    removeNavButton();
+    resetModes();
 
     const archiveStartYear = 2014;
     const archiveStartMonth = 8;

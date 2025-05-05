@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const clearDataButton = document.getElementById("clearData");
     const exportCSVButton = document.getElementById("exportCSV");
     const puzzleList = document.getElementById("puzzleList");
+    const inlineStatsEl = document.getElementById("inlineStats");
 
     // Helper: Converts "m:ss" to seconds.
     function timeToSeconds(timeString) {
@@ -20,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const puzzleDate = new Date(puzzle.date);
         if (puzzleDate.getDay() === 6) {
             // Saturday
-            li.innerHTML = `<strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
+            li.innerHTML = `- <strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
         }
@@ -165,10 +166,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 stdDev: null,
                 median: null,
                 mode: null,
+                minTime: null,
                 lineChartData: null,
                 histogramData: null,
             };
         }
+        // Compute minTime for fastest time display
+        const minTime = Math.min(...times);
         // 3. Compute Mean.
         const sum = times.reduce((acc, t) => acc + t, 0);
         const mean = sum / times.length;
@@ -235,20 +239,20 @@ document.addEventListener("DOMContentLoaded", () => {
         // 8. Prepare histogram data.
         // Define number of bins (for example, 10) and compute bin width.
         const binCount = 10;
-        const minTime = Math.min(...times);
+        const minTimeHistogram = Math.min(...times);
         const maxTime = Math.max(...times);
-        const binWidth = (maxTime - minTime) / binCount;
+        const binWidth = (maxTime - minTimeHistogram) / binCount;
         const histogramBins = new Array(binCount).fill(0);
         times.forEach((t) => {
-            let binIndex = Math.floor((t - minTime) / binWidth);
+            let binIndex = Math.floor((t - minTimeHistogram) / binWidth);
             if (binIndex === binCount) binIndex = binCount - 1; // Handle t equal to maxTime edge case.
             histogramBins[binIndex]++;
         });
         // Create labels for each bin.
         const histogramLabels = [];
         for (let i = 0; i < binCount; i++) {
-            const lower = Math.round(minTime + i * binWidth);
-            const upper = Math.round(minTime + (i + 1) * binWidth);
+            const lower = Math.round(minTimeHistogram + i * binWidth);
+            const upper = Math.round(minTimeHistogram + (i + 1) * binWidth);
             histogramLabels.push(`${lower}-${upper}`);
         }
         // 9. Optional: Render the charts if canvas element/container IDs are provided and Chart.js is available and loaded.
@@ -257,6 +261,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 .getElementById(lineChartId)
                 ?.getContext("2d");
             if (ctxLine) {
+                // destroy previous instance if exists
+                const prevLine = Chart.getChart(lineChartId);
+                if (prevLine) prevLine.destroy();
+
                 const lineChart = new Chart(ctxLine, {
                     type: "line",
                     data: {
@@ -315,7 +323,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         },
                     },
                 });
-                // Replace the previous click listener with a call to zoomChart:
                 ctxLine.canvas.addEventListener("click", () => {
                     zoomChart(
                         "line",
@@ -383,6 +390,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 .getElementById(histogramChartId)
                 ?.getContext("2d");
             if (ctxHist) {
+                // destroy previous instance if exists
+                const prevHist = Chart.getChart(histogramChartId);
+                if (prevHist) prevHist.destroy();
+
                 new Chart(ctxHist, {
                     type: "bar",
                     data: {
@@ -468,12 +479,13 @@ document.addEventListener("DOMContentLoaded", () => {
             stdDev,
             median,
             mode,
+            minTime,
             lineChartData: { labels: lineLabels, data: lineData },
             histogramData: {
                 labels: histogramLabels,
                 data: histogramBins,
                 binWidth,
-                minTime,
+                minTime: minTimeHistogram,
             },
         };
     }
@@ -503,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     container.appendChild(createPuzzleListItem(puzzle));
                 });
             }
-            // For last week, append two line breaks and then a subheading message AFTER the list if less than 7 puzzles.
+            // For last week, append two line breaks and then a subheading message after the list if less than 7 puzzles.
             if (days === 7) {
                 // Remove any existing reminder and break elements.
                 const existingReminder =
@@ -516,31 +528,33 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById("reminder-break2");
                 if (existingBreak2) existingBreak2.remove();
                 if (filteredPuzzles.length < 7) {
-                    // Compute the most recent incomplete puzzle from all puzzles.
+                    // Determine next day's puzzle from latest completed entry
                     const allPuzzles = data.puzzles;
-                    const incompletePuzzles = allPuzzles.filter(
-                        (p) => !p.time || p.time.trim() === ""
-                    );
-                    incompletePuzzles.sort(
-                        (a, b) => new Date(b.date) - new Date(a.date)
-                    );
-                    let linkTarget = "#";
-                    if (incompletePuzzles.length > 0) {
-                        const newestPuzzleDate = new Date(
-                            incompletePuzzles[0].date
-                        );
-                        const formattedDate =
-                            newestPuzzleDate.getFullYear() +
-                            "/" +
-                            ("0" + (newestPuzzleDate.getMonth() + 1)).slice(
-                                -2
-                            ) +
-                            "/" +
-                            ("0" + newestPuzzleDate.getDate()).slice(-2);
-                        linkTarget =
-                            "https://www.nytimes.com/crosswords/game/mini/" +
-                            formattedDate;
+                    const completed = allPuzzles
+                        .filter((p) => p.time && p.time.trim() !== "")
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+                    // Default nextDate = today
+                    let nextDate = new Date();
+                    if (completed.length > 0) {
+                        const lastDate = new Date(completed[0].date);
+                        // compare only date portion
+                        const todayMid = new Date();
+                        todayMid.setHours(0, 0, 0, 0);
+                        if (lastDate < todayMid) {
+                            nextDate = new Date(lastDate);
+                            nextDate.setDate(nextDate.getDate() + 1);
+                        }
                     }
+                    const formattedDate =
+                        nextDate.getFullYear() +
+                        "/" +
+                        ("0" + (nextDate.getMonth() + 1)).slice(-2) +
+                        "/" +
+                        ("0" + nextDate.getDate()).slice(-2);
+                    const linkTarget =
+                        "https://www.nytimes.com/crosswords/game/mini/" +
+                        formattedDate;
+
                     const br1 = document.createElement("br");
                     br1.id = "reminder-break1";
                     container.parentElement.appendChild(br1);
@@ -550,10 +564,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     const reminder = document.createElement("h3");
                     reminder.id = "reminder-message";
                     reminder.innerHTML =
-                        "Alright, you cheeky chappie—time to hop to it! Grab your cuppa, give those New York Times mini puzzles a go, and remember: <i>\"If you're going through hell, keep going.\"</i><br>Now, show those puzzles who's boss!<br><br>Blimey, get started already <a href='" +
+                        'Alright, you cheeky chappie—time to hop to it! Grab your cuppa, give those New York Times mini puzzles a go, and remember: <i>"If you\'re going through hell, keep going."</i><br>Now, show those puzzles who\'s boss!<br><br>Blimey, get started already <a href="' +
                         linkTarget +
-                        "' target='_blank'>here</a> mate!";
-                    reminder.style.textAlign = "center"; // center the text
+                        '" target="_blank" rel="noopener noreferrer" style="color:#608efa!important;">here</a> mate!';
+                    reminder.style.textAlign = "center";
                     container.parentElement.appendChild(reminder);
                 }
             }
@@ -689,6 +703,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateStats() {
+        // Destroy any previous charts so they disappear when data is cleared
+        ["lineChartAll", "lineChart7", "lineChart30", "lineChart365"].forEach(
+            (id) => {
+                const ch = Chart.getChart(id);
+                if (ch) ch.destroy();
+            }
+        );
+        ["histChartAll", "histChart7", "histChart30", "histChart365"].forEach(
+            (id) => {
+                const ch = Chart.getChart(id);
+                if (ch) ch.destroy();
+            }
+        );
+
         chrome.storage.local.get({ puzzles: [] }, (data) => {
             const puzzles = data.puzzles;
             const startDate = new Date("2014-08-21");
@@ -723,6 +751,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const totalSaturdays365 = countDaysOfWeekInRange(365, true);
             const totalNonSaturdays365 = countDaysOfWeekInRange(365, false);
 
+            // Compute total possible Saturdays/non-Saturdays for the entire range
+            const totalSaturdaysAll = countDaysOfWeekInRange(
+                totalPossiblePuzzles,
+                true
+            );
+            const totalNonSaturdaysAll = countDaysOfWeekInRange(
+                totalPossiblePuzzles,
+                false
+            );
+
             // Compute statistics for each group and render charts.
             const statsOverall = computePuzzleStatistics(
                 groupAll,
@@ -732,21 +770,48 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             const stats7 = computePuzzleStatistics(
                 group7,
-                group7.length,
+                7,
                 "lineChart7",
                 "histChart7"
             );
             const stats30 = computePuzzleStatistics(
                 group30,
-                group30.length,
+                30,
                 "lineChart30",
                 "histChart30"
             );
             const stats365 = computePuzzleStatistics(
                 group365,
-                group365.length,
+                365,
                 "lineChart365",
                 "histChart365"
+            );
+
+            // Compute Last Week stats.
+            const stats7Sat = computePuzzleStatistics(
+                groupSaturday7,
+                countDaysOfWeekInRange(7, true),
+                null,
+                null
+            );
+            const stats7Non = computePuzzleStatistics(
+                groupNonSaturday7,
+                countDaysOfWeekInRange(7, false),
+                null,
+                null
+            );
+            // Compute Last Month stats.
+            const stats30Sat = computePuzzleStatistics(
+                groupSaturday30,
+                countDaysOfWeekInRange(30, true),
+                null,
+                null
+            );
+            const stats30Non = computePuzzleStatistics(
+                groupNonSaturday30,
+                countDaysOfWeekInRange(30, false),
+                null,
+                null
             );
 
             // Compute statistics for each group.
@@ -764,43 +829,72 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             const statsSaturdayAll = computePuzzleStatistics(
                 groupSaturdayAll,
-                totalPossiblePuzzles,
+                totalSaturdaysAll,
                 null,
                 null
             );
             const statsNonSaturdayAll = computePuzzleStatistics(
                 groupNonSaturdayAll,
-                totalPossiblePuzzles,
+                totalNonSaturdaysAll,
                 null,
                 null
             );
 
-            // Compute Last Week stats.
-            const stats7Sat = computePuzzleStatistics(
-                groupSaturday7,
-                groupSaturday7.length,
-                null,
-                null
-            );
-            const stats7Non = computePuzzleStatistics(
-                groupNonSaturday7,
-                groupNonSaturday7.length,
-                null,
-                null
-            );
-            // Compute Last Month stats.
-            const stats30Sat = computePuzzleStatistics(
-                groupSaturday30,
-                groupSaturday30.length,
-                null,
-                null
-            );
-            const stats30Non = computePuzzleStatistics(
-                groupNonSaturday30,
-                groupNonSaturday30.length,
-                null,
-                null
-            );
+            // --- NEW: inline summary stats ---
+            if (inlineStatsEl) {
+                // 1. Solved count & %
+                const solved = puzzles.filter(
+                    (p) => timeToSeconds(p.time) !== null
+                ).length;
+                const pct = (solved / totalPossiblePuzzles) * 100;
+
+                // 2. Current streak or most recent
+                const doneDates = new Set(
+                    puzzles
+                        .filter((p) => timeToSeconds(p.time) !== null)
+                        .map((p) => new Date(p.date).toDateString())
+                );
+                let streak = 0,
+                    d = new Date();
+                d.setHours(0, 0, 0, 0);
+                while (doneDates.has(d.toDateString())) {
+                    streak++;
+                    d.setDate(d.getDate() - 1);
+                }
+                let streakText = streak
+                    ? `${streak} day${streak > 1 ? "s" : ""}`
+                    : `Most Recent Puzzle: ${
+                          puzzles
+                              .filter((p) => timeToSeconds(p.time) !== null)
+                              .sort(
+                                  (a, b) => new Date(b.date) - new Date(a.date)
+                              )[0]?.date || "N/A"
+                      }`;
+
+                // 3. Best time overall
+                const best =
+                    statsOverall.minTime != null
+                        ? `${statsOverall.minTime.toFixed(0)} s`
+                        : "N/A";
+                // 4. Best Saturday
+                const bestSat =
+                    statsSaturdayAll.minTime != null
+                        ? `${statsSaturdayAll.minTime.toFixed(0)} s`
+                        : "N/A";
+                // 5. Overall average time
+                const avgAll =
+                    statsOverall.mean != null
+                        ? `${statsOverall.mean.toFixed(1)} s`
+                        : "N/A";
+
+                inlineStatsEl.textContent =
+                    `Solved: ${solved} (${pct.toFixed(1)}%)  |  ` +
+                    `Streak: ${streakText}  |  ` +
+                    `Best Time: ${best}  |  ` +
+                    `Best Saturday: ${bestSat}  |  ` +
+                    `Avg Time: ${avgAll}`;
+            }
+            // --- end inline stats ---
 
             // Helper to format statistics with a heading.
             function formatStats(heading, stats, count) {
@@ -817,12 +911,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 return `<h3>${displayHeading}</h3>
             <ul>
-              <li>Count: ${count}</li>
+              <li>Solved Count: ${count}</li>
               <li>Completed Percentage: ${stats.completedPercentage.toFixed(
-                  2
+                  1
               )}%</li>
-              <li>Mean: ${stats.mean.toFixed(2)} s</li>
-              <li>Standard Deviation: ${stats.stdDev.toFixed(2)} s</li>
+              <li>Fastest Time: ${stats.minTime.toFixed(0)} s</li>
+              <li>Average/Mean: ${stats.mean.toFixed(1)} s</li>
+              <li>Standard Deviation: ${stats.stdDev.toFixed(1)} s</li>
               <li>Median: ${stats.median.toFixed(0)} s</li>
               <li>Mode: ${stats.mode.toFixed(0)} s</li>
             </ul>`;
@@ -835,14 +930,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     formatStats(
                         "Non-Saturday Puzzles",
                         stats7Non,
-                        groupNonSaturday7.length
+                        groupNonSaturday7.filter(
+                            (p) => timeToSeconds(p.time) !== null
+                        ).length
                     ) +
                     formatStats(
                         "Saturday Puzzles",
                         stats7Sat,
-                        groupSaturday7.length
+                        groupSaturday7.filter(
+                            (p) => timeToSeconds(p.time) !== null
+                        ).length
                     ) +
-                    formatStats("All Puzzles", stats7, group7.length);
+                    formatStats(
+                        "All Puzzles",
+                        stats7,
+                        group7.filter((p) => timeToSeconds(p.time) !== null)
+                            .length
+                    );
             }
 
             // Update Last Month statistics (row 2, second column):
@@ -852,14 +956,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     formatStats(
                         "Non-Saturday Puzzles",
                         stats30Non,
-                        groupNonSaturday30.length
+                        groupNonSaturday30.filter(
+                            (p) => timeToSeconds(p.time) !== null
+                        ).length
                     ) +
                     formatStats(
                         "Saturday Puzzles",
                         stats30Sat,
-                        groupSaturday30.length
+                        groupSaturday30.filter(
+                            (p) => timeToSeconds(p.time) !== null
+                        ).length
                     ) +
-                    formatStats("All Puzzles", stats30, group30.length);
+                    formatStats(
+                        "All Puzzles",
+                        stats30,
+                        group30.filter((p) => timeToSeconds(p.time) !== null)
+                            .length
+                    );
             }
 
             // Update Last Year statistics (row 2, third column):
@@ -868,7 +981,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 statsSat365El.innerHTML = formatStats(
                     "Non-Saturday Puzzles",
                     statsNonSaturday365,
-                    groupNonSaturday365.length
+                    groupNonSaturday365.filter(
+                        (p) => timeToSeconds(p.time) !== null
+                    ).length
                 );
             const statsNonSat365El = document.getElementById(
                 "statsNonSaturday365"
@@ -877,14 +992,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 statsNonSat365El.innerHTML = formatStats(
                     "Saturday Puzzles",
                     statsSaturday365,
-                    groupSaturday365.length
+                    groupSaturday365.filter(
+                        (p) => timeToSeconds(p.time) !== null
+                    ).length
                 );
             const statsAllYearEl = document.getElementById("statsAllYear");
             if (statsAllYearEl)
                 statsAllYearEl.innerHTML = formatStats(
                     "All Puzzles",
                     stats365,
-                    group365.length
+                    group365.filter((p) => timeToSeconds(p.time) !== null)
+                        .length
                 );
 
             // Update All Time statistics (row 2, fourth column):
@@ -894,7 +1012,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 statsSaturdayAllEl.innerHTML = formatStats(
                     "Non-Saturday Puzzles",
                     statsNonSaturdayAll,
-                    groupNonSaturdayAll.length
+                    groupNonSaturdayAll.filter(
+                        (p) => timeToSeconds(p.time) !== null
+                    ).length
                 );
             const statsNonSatAllEl = document.getElementById(
                 "statsNonSaturdayAll"
@@ -903,14 +1023,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 statsNonSatAllEl.innerHTML = formatStats(
                     "Saturday Puzzles",
                     statsSaturdayAll,
-                    groupSaturdayAll.length
+                    groupSaturdayAll.filter(
+                        (p) => timeToSeconds(p.time) !== null
+                    ).length
                 );
             const statsAllTimeEl = document.getElementById("statsAllTime");
             if (statsAllTimeEl)
                 statsAllTimeEl.innerHTML = formatStats(
                     "All Puzzles",
                     statsOverall,
-                    groupAll.length
+                    groupAll.filter((p) => timeToSeconds(p.time) !== null)
+                        .length
                 );
         });
     }
@@ -927,4 +1050,21 @@ document.addEventListener("DOMContentLoaded", () => {
             updateStats();
         }
     });
+
+    const shareButton = document.getElementById("shareStats");
+    if (shareButton) {
+        shareButton.addEventListener("click", () => {
+            const stats = inlineStatsEl.textContent || "";
+            const message =
+                "🌟 Behold my NYT Mini Puzzle journey! 🌟\n\n" +
+                `${stats}\n\n` +
+                "Wanna track your own Minis prowess and enhance your experience and efficiency on the site? 🚀\n" +
+                "Install the MiniMachine extension on your browser and unlock your personalized stats today! 🎉";
+            navigator.clipboard.writeText(message).then(() => {
+                alert(
+                    "Your MiniMachine brag message has been copied to clipboard!"
+                );
+            });
+        });
+    }
 });

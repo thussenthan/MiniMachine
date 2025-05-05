@@ -1,5 +1,2 @@
 # Ignore OS-specific files
 .DS_Store
-
-# Ignore log files and temp files
-temp/
