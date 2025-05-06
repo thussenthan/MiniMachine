@@ -101,6 +101,28 @@ document.addEventListener("DOMContentLoaded", () => {
         return li;
     }
 
+    // Helper: Find the most recent date (MM/DD/YYYY) with no recorded time.
+    function getLatestUnsolvedDate(puzzles) {
+        const startDate = new Date("2014-08-21");
+        const today = new Date();
+        let d = new Date(today);
+        d.setHours(0, 0, 0, 0);
+        while (d >= startDate) {
+            const dateStr = `${
+                d.getMonth() + 1
+            }/${d.getDate()}/${d.getFullYear()}`;
+            const entry = puzzles.find((p) => p.date === dateStr);
+            if (!entry || !entry.time || entry.time.trim() === "") {
+                return dateStr;
+            }
+            d.setDate(d.getDate() - 1);
+        }
+        // Fallback: today's date if none found
+        return `${
+            today.getMonth() + 1
+        }/${today.getDate()}/${today.getFullYear()}`;
+    }
+
     // Function to update the displayed list of puzzles in storage
     function updatePuzzleList() {
         chrome.storage.local.get({ puzzles: [] }, (data) => {
@@ -143,9 +165,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const totalDays =
                 Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
             const percentage = ((processed / totalDays) * 100).toFixed(1);
+
             const popupStats = document.getElementById("statistics");
             if (popupStats) {
                 popupStats.innerText = `Processed: ${processed} / ${totalDays} (${percentage}%)`;
+            }
+
+            // Update button label
+            const goBtn = document.getElementById("goToLatestNull");
+            if (goBtn) {
+                const latest = getLatestUnsolvedDate(puzzles);
+                goBtn.textContent = `Go to latest unsolved: ${latest}`;
             }
         });
     }
@@ -160,4 +190,20 @@ document.addEventListener("DOMContentLoaded", () => {
             updateStatistics();
         }
     });
+
+    // Wire up the button to go to most recent unsolved puzzle
+    const goBtn = document.getElementById("goToLatestNull");
+    if (goBtn) {
+        goBtn.addEventListener("click", () => {
+            chrome.storage.local.get({ puzzles: [] }, (result) => {
+                const puzzles = result.puzzles;
+                const targetDate = getLatestUnsolvedDate(puzzles);
+                const [m, d, y] = targetDate.split("/");
+                const mm = String(m).padStart(2, "0");
+                const dd = String(d).padStart(2, "0");
+                const url = `https://www.nytimes.com/crosswords/game/mini/${y}/${mm}/${dd}`;
+                window.open(url, "_blank");
+            });
+        });
+    }
 });

@@ -88,22 +88,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 zoom: {
                     zoom: {
                         wheel: { enabled: true },
-                        drag: { enabled: true }, // allows drag-selection for zooming
+                        // drag: { enabled: true }, // allows drag-selection for zooming
                         pinch: { enabled: true }, // pinch-zooming on touch devices
                         mode: "x", // zoom along the x-axis
                     },
-                    pan: {
+                    pan: {       // move pan here under zoom
                         enabled: true,
                         mode: "x",
                     },
                 },
             },
         };
-        // Merge with existing options (a simple shallow merge, adjust as needed)
-        options.plugins = Object.assign(
+        // Merge zoom & pan into options.plugins.zoom
+        options.plugins = options.plugins || {};
+        options.plugins.zoom = Object.assign(
             {},
-            options.plugins,
-            zoomOptions.plugins
+            options.plugins.zoom,
+            zoomOptions.plugins.zoom
         );
 
         new Chart(fullCanvas, {
@@ -320,6 +321,12 @@ document.addEventListener("DOMContentLoaded", () => {
                                     );
                                 },
                             },
+                            zoom: {
+                                pan: {
+                                    enabled: true,
+                                    mode: "x", // allow panning in the x-direction
+                                },
+                            },
                         },
                     },
                 });
@@ -530,20 +537,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (filteredPuzzles.length < 7) {
                     // Determine next day's puzzle from latest completed entry
                     const allPuzzles = data.puzzles;
-                    const completed = allPuzzles
-                        .filter((p) => p.time && p.time.trim() !== "")
-                        .sort((a, b) => new Date(b.date) - new Date(a.date));
-                    // Default nextDate = today
+                    // build a set of solved dates using timeToSeconds (filters out null/blank)
+                    const completedDates = new Set(
+                        allPuzzles
+                            .filter((p) => timeToSeconds(p.time) !== null)
+                            .map((p) => new Date(p.date).toDateString())
+                    );
+                    // start at today (midnight) and step backward until we find an unsolved date
                     let nextDate = new Date();
-                    if (completed.length > 0) {
-                        const lastDate = new Date(completed[0].date);
-                        // compare only date portion
-                        const todayMid = new Date();
-                        todayMid.setHours(0, 0, 0, 0);
-                        if (lastDate < todayMid) {
-                            nextDate = new Date(lastDate);
-                            nextDate.setDate(nextDate.getDate() + 1);
-                        }
+                    nextDate.setHours(0, 0, 0, 0);
+                    while (completedDates.has(nextDate.toDateString())) {
+                        nextDate.setDate(nextDate.getDate() - 1);
                     }
                     const formattedDate =
                         nextDate.getFullYear() +
@@ -584,7 +588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     clearDataButton.addEventListener("click", () => {
         if (
             window.confirm(
-                "Are you sure you want to delete all historical data? \n This action cannot be undone."
+                "Are you sure you want to delete all historical data?\nThis action cannot be undone."
             )
         ) {
             chrome.storage.local.set({ puzzles: [] }, () => {
@@ -681,6 +685,14 @@ document.addEventListener("DOMContentLoaded", () => {
             if (file) {
                 importCSVFile(file);
             }
+        });
+    }
+
+    // Forward clicks from the visible button to the off-screen file input.
+    const importCSVButton = document.getElementById("importCSVButton");
+    if (importCSVButton && importCSVInput) {
+        importCSVButton.addEventListener("click", () => {
+            importCSVInput.click();
         });
     }
 
@@ -863,13 +875,18 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 let streakText = streak
                     ? `${streak} day${streak > 1 ? "s" : ""}`
-                    : `Most Recent Puzzle: ${
+                    : `Latest: ${
                           puzzles
                               .filter((p) => timeToSeconds(p.time) !== null)
                               .sort(
                                   (a, b) => new Date(b.date) - new Date(a.date)
                               )[0]?.date || "N/A"
                       }`;
+
+                // Replace the fixed “Streak:” label with conditional display:
+                const streakDisplay = streak
+                    ? `Streak: ${streakText}`
+                    : streakText;
 
                 // 3. Best time overall
                 const best =
@@ -889,10 +906,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 inlineStatsEl.textContent =
                     `Solved: ${solved} (${pct.toFixed(1)}%)  |  ` +
-                    `Streak: ${streakText}  |  ` +
-                    `Best Time: ${best}  |  ` +
-                    `Best Saturday: ${bestSat}  |  ` +
-                    `Avg Time: ${avgAll}`;
+                    `${streakDisplay}  |  ` +
+                    `Best: ${best}  |  ` +
+                    `Best Sat: ${bestSat}  |  ` +
+                    `Avg: ${avgAll}`;
             }
             // --- end inline stats ---
 

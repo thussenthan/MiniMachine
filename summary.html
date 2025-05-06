@@ -227,14 +227,9 @@
                 type="file"
                 id="importCSV"
                 accept=".csv"
-                style="display: none"
+                style="position: absolute; left: -9999px"
             />
-            <button
-                id="importCSVButton"
-                onclick="document.getElementById('importCSV').click()"
-            >
-                Import CSV
-            </button>
+            <button id="importCSVButton">Import CSV</button>
             <span id="importStatus" style="color: green"></span>
             <div
                 style="

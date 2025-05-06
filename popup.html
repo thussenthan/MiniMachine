@@ -17,6 +17,8 @@
                 color: var(--text-color);
                 font-family: "Segoe UI", sans-serif;
                 padding: 20px;
+                width: fit-content;
+                white-space: nowrap;
             }
 
             button {
@@ -86,8 +88,8 @@
                 style="width: 30px; height: 30px; vertical-align: middle"
             />
         </h1>
-        <button id="getData">Get Data</button>
-        <button id="goToSummary">Go to Summary</button>
+        <button id="getData">Run</button>
+        <button id="goToSummary">Summary</button>
         <button id="SonicScraper" title="Super Speed" style="padding: 0">
             <img
                 src="icons/sonic.png"
@@ -97,6 +99,9 @@
         </button>
         <ul id="puzzleList"></ul>
         <div id="statistics"></div>
+        <button id="goToLatestNull" style="margin-top: 10px">
+            Latest Unsolved
+        </button>
         <script src="popup.js"></script>
     </body>
 </html>

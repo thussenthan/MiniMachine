@@ -134,12 +134,19 @@ function initAutoNavigation() {
             const puzzleDateStr = `${
                 currentDate.getMonth() + 1
             }/${currentDate.getDate()}/${currentDate.getFullYear()}`;
-            chrome.runtime.sendMessage(
-                { date: puzzleDateStr, time: solveTimeText },
-                (response) => {
-                    console.log("Puzzle data recorded (auto-navigation mode).");
+
+            // Persist this puzzle's time into storage:
+            chrome.storage.local.get({ puzzles: [] }, (data) => {
+                const puzzles = data.puzzles;
+                const idx = puzzles.findIndex((p) => p.date === puzzleDateStr);
+                if (idx > -1) {
+                    puzzles[idx].time = solveTimeText;
+                } else {
+                    puzzles.push({ date: puzzleDateStr, time: solveTimeText });
                 }
-            );
+                chrome.storage.local.set({ puzzles });
+            });
+
             console.log(
                 "Modal detected. Redirecting in 1.5 seconds to:",
                 prevUrl
