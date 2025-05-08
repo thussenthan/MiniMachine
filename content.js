@@ -51,7 +51,6 @@ function initAutoNavigation() {
     const datePattern = /(\d{4})\/(\d{2})\/(\d{2})/;
     const dateMatch = url.match(datePattern);
     if (!dateMatch) {
-        console.error("Date not found in the URL.");
         return;
     }
 

@@ -12,13 +12,22 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.mode === undefined) {
             chrome.storage.local.set({ mode: 0 }); // Set to auto-navigation (0) by default
         }
-        getDataButton.textContent =
+        getDataButton.innerHTML =
+            data.mode === 1
+                ? `<img src="assets/thinking_robot.gif" alt="Stop Getting Data">`
+                : `<img src="assets/logo.png" alt="Get Data">`;
+        getDataButton.title =
             data.mode === 1 ? "Stop Getting Data" : "Get Data";
+        // Add or remove collecting class based on mode
+        getDataButton.classList.toggle("collecting", data.mode === 1);
+
         if (data.mode === 2) {
-            SonicScraperButton.innerHTML = `<img src="icons/sonic-roll.gif" alt="SonicScraper On" style="width:25px;height:25px; vertical-align: middle;">`;
+            SonicScraperButton.innerHTML = `<img src="assets/sonic-rolling.gif" alt="SonicScraper On">`;
         } else {
-            SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
+            SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
         }
+        // Toggle active class for SonicScraper
+        SonicScraperButton.classList.toggle("active", data.mode === 2);
     });
 
     // Toggle Get Data (mode 1) <-> off (mode 0)
@@ -26,10 +35,18 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.get({ mode: 0 }, (data) => {
             const newMode = data.mode === 1 ? 0 : 1;
             chrome.storage.local.set({ mode: newMode }, () => {
-                getDataButton.textContent =
+                getDataButton.innerHTML =
+                    newMode === 1
+                        ? `<img src="assets/thinking_robot.gif" alt="Stop Getting Data">`
+                        : `<img src="assets/logo.png" alt="Get Data">`;
+                getDataButton.title =
                     newMode === 1 ? "Stop Getting Data" : "Get Data";
+                // Toggle collecting class
+                getDataButton.classList.toggle("collecting", newMode === 1);
+
                 // always turn SonicScraper off
-                SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
+                SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
+                SonicScraperButton.classList.remove("active");
                 // notify content
                 chrome.tabs.query(
                     { active: true, currentWindow: true },
@@ -52,12 +69,17 @@ document.addEventListener("DOMContentLoaded", () => {
             const newMode = data.mode === 2 ? 0 : 2;
             chrome.storage.local.set({ mode: newMode }, () => {
                 if (newMode === 2) {
-                    SonicScraperButton.innerHTML = `<img src="icons/sonic-rolling.gif" alt="SonicScraper On" style="width:25px;height:25px; vertical-align: middle;">`;
+                    SonicScraperButton.innerHTML = `<img src="assets/sonic-rolling.gif" alt="SonicScraper On">`;
                 } else {
-                    SonicScraperButton.innerHTML = `<img src="icons/sonic.png" alt="SonicScraper Off" style="width:25px;height:25px; vertical-align: middle;">`;
+                    SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
                 }
+                // Toggle active class for SonicScraper
+                SonicScraperButton.classList.toggle("active", newMode === 2);
                 // always turn Get Data off
-                getDataButton.textContent = "Get Data";
+                getDataButton.innerHTML = `<img src="assets/logo.png" alt="Get Data">`;
+                getDataButton.title = "Get Data";
+                // Ensure collecting class removed when not collecting
+                getDataButton.classList.remove("collecting");
                 chrome.tabs.query(
                     { active: true, currentWindow: true },
                     (tabs) => {
@@ -101,7 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return li;
     }
 
-    // Helper: Find the most recent date (MM/DD/YYYY) with no recorded time.
+    // Helper: Find the most recent date (MM/DD/YYYY) with no recorded time (an empty/blank value) or null
     function getLatestUnsolvedDate(puzzles) {
         const startDate = new Date("2014-08-21");
         const today = new Date();
@@ -112,12 +134,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 d.getMonth() + 1
             }/${d.getDate()}/${d.getFullYear()}`;
             const entry = puzzles.find((p) => p.date === dateStr);
-            if (!entry || !entry.time || entry.time.trim() === "") {
+            if (!entry || !entry.time || entry.time.trim() === "" || entry.time.trim().toLowerCase() === "null") {
                 return dateStr;
             }
             d.setDate(d.getDate() - 1);
         }
-        // Fallback: today's date if none found
+        // Fallback: today's date
         return `${
             today.getMonth() + 1
         }/${today.getDate()}/${today.getFullYear()}`;
@@ -170,13 +192,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (popupStats) {
                 popupStats.innerText = `Processed: ${processed} / ${totalDays} (${percentage}%)`;
             }
-
-            // Update button label
-            const goBtn = document.getElementById("goToLatestNull");
-            if (goBtn) {
-                const latest = getLatestUnsolvedDate(puzzles);
-                goBtn.textContent = `Go to latest unsolved: ${latest}`;
-            }
         });
     }
 
@@ -202,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const mm = String(m).padStart(2, "0");
                 const dd = String(d).padStart(2, "0");
                 const url = `https://www.nytimes.com/crosswords/game/mini/${y}/${mm}/${dd}`;
-                window.open(url, "_blank");
+                chrome.tabs.create({ url }); // open targetDate in a new Chrome tab
             });
         });
     }

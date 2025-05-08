@@ -92,7 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         pinch: { enabled: true }, // pinch-zooming on touch devices
                         mode: "x", // zoom along the x-axis
                     },
-                    pan: {       // move pan here under zoom
+                    pan: {
+                        // move pan here under zoom
                         enabled: true,
                         mode: "x",
                     },
@@ -914,7 +915,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // --- end inline stats ---
 
             // Helper to format statistics with a heading.
-            function formatStats(heading, stats, count) {
+            function formatStats(heading, stats, count, isAllTime = false) {
                 // If the heading is "Saturday Puzzles", make "Saturday" italicized.
                 let displayHeading = heading;
                 if (heading === "Saturday Puzzles") {
@@ -926,12 +927,16 @@ document.addEventListener("DOMContentLoaded", () => {
                      <li>No valid puzzle times available.</li>
                  </ul>`;
                 }
+                // Compute custom solved line, adding total and remaining for All Puzzles
+                let solvedLine = `<li>Count: ${count}</li>`;
+                if (heading === "All Puzzles" && isAllTime) {
+                    const remaining = totalPossiblePuzzles - count;
+                    solvedLine = `<li>Count: ${count} <em>out of ${totalPossiblePuzzles} puzzles (${remaining} to go)</em></li>`;
+                }
                 return `<h3>${displayHeading}</h3>
             <ul>
-              <li>Solved Count: ${count}</li>
-              <li>Completed Percentage: ${stats.completedPercentage.toFixed(
-                  1
-              )}%</li>
+              ${solvedLine}
+              <li>Completed: ${stats.completedPercentage.toFixed(1)}%</li>
               <li>Fastest Time: ${stats.minTime.toFixed(0)} s</li>
               <li>Average/Mean: ${stats.mean.toFixed(1)} s</li>
               <li>Standard Deviation: ${stats.stdDev.toFixed(1)} s</li>
@@ -1050,7 +1055,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     "All Puzzles",
                     statsOverall,
                     groupAll.filter((p) => timeToSeconds(p.time) !== null)
-                        .length
+                        .length,
+                    true
                 );
         });
     }
@@ -1073,10 +1079,10 @@ document.addEventListener("DOMContentLoaded", () => {
         shareButton.addEventListener("click", () => {
             const stats = inlineStatsEl.textContent || "";
             const message =
-                "🌟 Behold my NYT Mini Puzzle journey! 🌟\n\n" +
+                "🌟 Behold my NYT Mini Crossoword Puzzle journey! 🌟\n\n" +
                 `${stats}\n\n` +
-                "Wanna track your own Minis prowess and enhance your experience and efficiency on the site? 🚀\n" +
-                "Install the MiniMachine extension on your browser and unlock your personalized stats today! 🎉";
+                "Wanna track your own Minis prowess? 🚀\n" +
+                "Install the MiniMachine browser extension and unlock your personalized stats today! 🎉";
             navigator.clipboard.writeText(message).then(() => {
                 alert(
                     "Your MiniMachine brag message has been copied to clipboard!"
