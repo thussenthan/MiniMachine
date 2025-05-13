@@ -1,5 +1,9 @@
-// --- summary.js ---
+// --- statistics.js ---
 document.addEventListener("DOMContentLoaded", () => {
+    const ACCENT_COLOR =
+        getComputedStyle(document.documentElement)
+            .getPropertyValue("--accent-color")
+            .trim() || "#6493E6"; // accent color constant
     const clearDataButton = document.getElementById("clearData");
     const exportCSVButton = document.getElementById("exportCSV");
     const puzzleList = document.getElementById("puzzleList");
@@ -20,8 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const puzzleDate = new Date(puzzle.date);
         if (puzzleDate.getDay() === 6) {
-            // Saturday
-            li.innerHTML = `- <strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
+            // Saturday: accent
+            li.classList.add("saturday");
+            li.innerHTML = `<strong>Date: ${puzzle.date}, Time: ${puzzle.time}</strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
         }
@@ -41,8 +46,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Helper function: Filters an array of puzzles to only those within the last 'days' days.
     function filterPuzzlesByDays(puzzles, days) {
-        const today = new Date();
-        const startDate = new Date();
+        const today = getPublishedPuzzleDate();
+        const startDate = new Date(today);
         startDate.setDate(today.getDate() - days);
         return puzzles.filter((puzzle) => {
             const puzzleDate = new Date(puzzle.date);
@@ -68,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.createElement("div");
         container.style.width = "75vw";
         container.style.height = "75vh";
-        container.style.backgroundColor = "#000"; // changed from white to black
+        container.style.backgroundColor = "#000"; // changed from "#fff"
         container.style.padding = "10px";
         container.style.boxSizing = "border-box";
 
@@ -213,6 +218,11 @@ document.addEventListener("DOMContentLoaded", () => {
         const lineLabels = sortedPuzzles.map((p) => p.date);
         const lineData = sortedPuzzles.map((p) => timeToSeconds(p.time));
 
+        // Prepare point background colors for Saturday and non-Saturday data points
+        const pointBgColors = sortedPuzzles.map((p) =>
+            new Date(p.date).getDay() === 6 ? ACCENT_COLOR : "#ffffff"
+        );
+
         // Compute trend line data using linear regression on the index values
         let trendLineData = [];
         if (lineData.length > 1) {
@@ -276,16 +286,19 @@ document.addEventListener("DOMContentLoaded", () => {
                                 label: "Time (sec)",
                                 data: lineData,
                                 fill: false,
-                                borderColor: "#1f77b4", // changed from "DeepSkyBlue"
-                                backgroundColor: "#aec7e8", // changed from "DodgerBlue"
+                                borderColor: "#4C4C4C", // line color (updated) // changed from "#1f77b4"
+                                backgroundColor: "#ffffff", // default point color for non-Saturday, changed from "#aec7e8"
+                                pointBackgroundColor: pointBgColors, // per-point background colors
+                                pointBorderColor: "#4C4C4C", // Use updated line color for point borders // changed from "#1f77b4"
+                                pointHoverRadius: 4,
                                 order: 2,
                             },
                             {
                                 label: "Trend Line",
                                 data: trendLineData,
                                 fill: false,
-                                borderColor: "#ff7f0e", // changed from "Tomato"
-                                backgroundColor: "#ff7f0e", // changed from "Tomato"
+                                borderColor: "#17becf", // updated trendline to teal // changed from "#ff7f0e" and "Tomato"
+                                backgroundColor: "#17becf", // updated trendline to teal // changed from "#ff7f0e" and "Tomato"
                                 pointRadius: 0,
                                 order: 1,
                             },
@@ -341,16 +354,20 @@ document.addEventListener("DOMContentLoaded", () => {
                                     label: "Time (sec)",
                                     data: lineData,
                                     fill: false,
-                                    borderColor: "#1f77b4", // changed from "DeepSkyBlue"
-                                    backgroundColor: "#aec7e8", // changed from "DodgerBlue"
+                                    borderColor: "#4C4C4C", // updated to neutral gray // changed from "#1f77b4"
+                                    backgroundColor: "#ffffff", // changed from "#aec7e8" and "DodgerBlue"
+                                    pointBackgroundColor: pointBgColors, // per-point background colors
+                                    pointBorderColor: "#4C4C4C", // Use updated line color for point borders in zoomed chart // changed from "#1f77b4"
+                                    pointRadius: 4,
+                                    pointHoverRadius: 6,
                                     order: 2,
                                 },
                                 {
                                     label: "Trend Line",
                                     data: trendLineData,
                                     fill: false,
-                                    borderColor: "#ff7f0e", // changed from "Tomato"
-                                    backgroundColor: "#ff7f0e", // changed from "Tomato"
+                                    borderColor: "#17becf", // updated trendline to teal // changed from "#ff7f0e" and "Tomato"
+                                    backgroundColor: "#17becf", // updated trendline to teal // changed from "#ff7f0e" and "Tomato"
                                     pointRadius: 0,
                                     order: 1,
                                 },
@@ -410,8 +427,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             {
                                 label: "Frequency",
                                 data: histogramBins,
-                                backgroundColor: "#2ca02c", // changed from "ForestGreen"
-                                borderColor: "#2ca02c", // changed from "ForestGreen"
+                                backgroundColor: ACCENT_COLOR, // replaced hard-coded accent
+                                borderColor: ACCENT_COLOR, // replaced hard-coded accent
                             },
                         ],
                     },
@@ -420,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             x: {
                                 title: {
                                     display: true,
-                                    text: "Puzzle Time Bins (s)",
+                                    text: "Puzzle Time Bins (sec)",
                                     color: "#fff",
                                 },
                                 grid: { color: "rgba(255,255,255,0.2)" },
@@ -458,7 +475,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 x: {
                                     title: {
                                         display: true,
-                                        text: "Puzzle Time Bins (s)",
+                                        text: "Puzzle Time Bins (sec)",
                                         color: "#fff",
                                     },
                                     grid: { color: "rgba(255,255,255,0.2)" },
@@ -504,6 +521,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById(containerId);
         chrome.storage.local.get({ puzzles: [] }, (data) => {
             let filteredPuzzles = filterPuzzlesByDays(data.puzzles, days);
+            // Filter out puzzles with null or missing time (unsolved)
+            filteredPuzzles = filteredPuzzles.filter(
+                (puzzle) => timeToSeconds(puzzle.time) !== null
+            );
             // Sort the filtered puzzles by solve time (in seconds), with fastest first. (using the timeToSeconds helper)
             filteredPuzzles.sort((a, b) => {
                 const aTime = timeToSeconds(a.time);
@@ -536,30 +557,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     document.getElementById("reminder-break2");
                 if (existingBreak2) existingBreak2.remove();
                 if (filteredPuzzles.length < 7) {
-                    // Determine next day's puzzle from latest completed entry
+                    // Determine latest unsolved puzzle date using shared helper
                     const allPuzzles = data.puzzles;
-                    // build a set of solved dates using timeToSeconds (filters out null/blank)
-                    const completedDates = new Set(
-                        allPuzzles
-                            .filter((p) => timeToSeconds(p.time) !== null)
-                            .map((p) => new Date(p.date).toDateString())
+                    const latest = getLatestUnsolvedFromDate(
+                        allPuzzles,
+                        getPublishedPuzzleDate()
                     );
-                    // start at today (midnight) and step backward until we find an unsolved date
-                    let nextDate = new Date();
-                    nextDate.setHours(0, 0, 0, 0);
-                    while (completedDates.has(nextDate.toDateString())) {
-                        nextDate.setDate(nextDate.getDate() - 1);
-                    }
-                    const formattedDate =
-                        nextDate.getFullYear() +
-                        "/" +
-                        ("0" + (nextDate.getMonth() + 1)).slice(-2) +
-                        "/" +
-                        ("0" + nextDate.getDate()).slice(-2);
+                    const [m, d, y] = latest.split("/");
+                    const formattedDate = `${y}/${m.padStart(
+                        2,
+                        "0"
+                    )}/${d.padStart(2, "0")}`;
                     const linkTarget =
                         "https://www.nytimes.com/crosswords/game/mini/" +
                         formattedDate;
-
+                    const safeLink = safeUrl(linkTarget);
                     const br1 = document.createElement("br");
                     br1.id = "reminder-break1";
                     container.parentElement.appendChild(br1);
@@ -568,10 +580,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     container.parentElement.appendChild(br2);
                     const reminder = document.createElement("h3");
                     reminder.id = "reminder-message";
-                    reminder.innerHTML =
-                        'Alright, you cheeky chappie—time to hop to it! Grab your cuppa, give those New York Times mini puzzles a go, and remember: <i>"If you\'re going through hell, keep going."</i><br>Now, show those puzzles who\'s boss!<br><br>Blimey, get started already <a href="' +
-                        linkTarget +
-                        '" target="_blank" rel="noopener noreferrer" style="color:#608efa!important;">here</a> mate!';
+                    reminder.innerHTML = `Alright, you cheeky chappie—time to hop to it! Grab your cuppa, give those New York Times mini puzzles a go, and remember: <i>"If you're going through hell, keep going."</i><br>Now, show those puzzles who's boss!<br><br>Blimey, get started already <a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:${ACCENT_COLOR}!important;">here</a> mate!`;
                     reminder.style.textAlign = "center";
                     container.parentElement.appendChild(reminder);
                 }
@@ -700,8 +709,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Helper: Counts the number of Saturdays (if isSaturday is true) or non-Saturdays (if false)
     // in the last "days" days (including today).
     function countDaysOfWeekInRange(days, isSaturday) {
-        const today = new Date();
-        const startDate = new Date();
+        const today = getPublishedPuzzleDate();
+        const startDate = new Date(today);
         startDate.setDate(today.getDate() - days + 1);
         let count = 0;
         for (
@@ -733,7 +742,7 @@ document.addEventListener("DOMContentLoaded", () => {
         chrome.storage.local.get({ puzzles: [] }, (data) => {
             const puzzles = data.puzzles;
             const startDate = new Date("2014-08-21");
-            const today = new Date();
+            const today = getPublishedPuzzleDate();
             const millisecondsPerDay = 1000 * 60 * 60 * 24;
             const totalPossiblePuzzles =
                 Math.floor((today - startDate) / millisecondsPerDay) + 1; // Total days since start date + 1 for today.
@@ -868,8 +877,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         .map((p) => new Date(p.date).toDateString())
                 );
                 let streak = 0,
-                    d = new Date();
-                d.setHours(0, 0, 0, 0);
+                    d = getPublishedPuzzleDate();
                 while (doneDates.has(d.toDateString())) {
                     streak++;
                     d.setDate(d.getDate() - 1);
@@ -884,42 +892,55 @@ document.addEventListener("DOMContentLoaded", () => {
                               )[0]?.date || "N/A"
                       }`;
 
-                // Replace the fixed “Streak:” label with conditional display:
-                const streakDisplay = streak
-                    ? `Streak: ${streakText}`
-                    : streakText;
-
-                // 3. Best time overall
+                // Define stats for inline display
                 const best =
                     statsOverall.minTime != null
                         ? `${statsOverall.minTime.toFixed(0)} s`
                         : "N/A";
-                // 4. Best Saturday
                 const bestSat =
                     statsSaturdayAll.minTime != null
                         ? `${statsSaturdayAll.minTime.toFixed(0)} s`
                         : "N/A";
-                // 5. Overall average time
                 const avgAll =
                     statsOverall.mean != null
                         ? `${statsOverall.mean.toFixed(1)} s`
                         : "N/A";
 
-                inlineStatsEl.textContent =
-                    `Solved: ${solved} (${pct.toFixed(1)}%)  |  ` +
-                    `${streakDisplay}  |  ` +
-                    `Best: ${best}  |  ` +
-                    `Best Sat: ${bestSat}  |  ` +
-                    `Avg: ${avgAll}`;
+                // Determine HTML for streak or latest with link
+                let streakHTML;
+                if (!streak) {
+                    if (solved === 0) {
+                        // no puzzles: just show plain text
+                        streakHTML = streakText;
+                    } else {
+                        // Latest date: make clickable link
+                        const dateOnly = streakText
+                            .replace("Latest: ", "")
+                            .trim();
+                        const [m, d, y] = dateOnly.split("/");
+                        const formattedDate = `${y}/${m.padStart(
+                            2,
+                            "0"
+                        )}/${d.padStart(2, "0")}`;
+                        const url = `https://www.nytimes.com/crosswords/game/mini/${formattedDate}`;
+                        streakHTML = `<a href="${url}" target="_blank" rel="noopener noreferrer">${streakText}</a>`;
+                    }
+                } else {
+                    // Regular streak display: include "Streak:" prefix
+                    streakHTML = `Streak: ${streakText}`;
+                }
+                inlineStatsEl.innerHTML = `Solved: ${solved} (${pct.toFixed(
+                    1
+                )}%)  |  ${streakHTML}  |  Best: ${best}  |  Best Sat: ${bestSat}  |  Avg: ${avgAll}`;
             }
             // --- end inline stats ---
 
             // Helper to format statistics with a heading.
             function formatStats(heading, stats, count, isAllTime = false) {
-                // If the heading is "Saturday Puzzles", make "Saturday" italicized.
+                // If the heading is "Saturday Puzzles", make it bold and accent blue.
                 let displayHeading = heading;
                 if (heading === "Saturday Puzzles") {
-                    displayHeading = "<em>Saturday</em> Puzzles";
+                    displayHeading = `<strong class=\"saturday\">Saturday Puzzles</strong>`;
                 }
                 if (stats.mean === null) {
                     return `<h3>${displayHeading}</h3>
@@ -1070,24 +1091,6 @@ document.addEventListener("DOMContentLoaded", () => {
             updateFilteredPuzzleList(30, "filteredList30");
             updateFilteredPuzzleList(365, "filteredList365");
             updateFilteredPuzzleList(10000, "filteredListAll");
-            updateStats();
         }
     });
-
-    const shareButton = document.getElementById("shareStats");
-    if (shareButton) {
-        shareButton.addEventListener("click", () => {
-            const stats = inlineStatsEl.textContent || "";
-            const message =
-                "🌟 Behold my NYT Mini Crossoword Puzzle journey! 🌟\n\n" +
-                `${stats}\n\n` +
-                "Wanna track your own Minis prowess? 🚀\n" +
-                "Install the MiniMachine browser extension and unlock your personalized stats today! 🎉";
-            navigator.clipboard.writeText(message).then(() => {
-                alert(
-                    "Your MiniMachine brag message has been copied to clipboard!"
-                );
-            });
-        });
-    }
 });

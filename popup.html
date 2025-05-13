@@ -13,7 +13,7 @@
                 --button-bg: #1e1e1e;
                 --text-color: #e0e0e0;
                 --border-color: #333;
-                --accent-color: #608efa;
+                --accent-color: #6493e6;
             }
 
             body {
@@ -43,7 +43,7 @@
 
             h1,
             h2 {
-                color: var(--text-color);
+                color: var(--accent-color);
             }
 
             ul {
@@ -79,6 +79,13 @@
             * {
                 scrollbar-width: thin;
                 scrollbar-color: #444 #000;
+            }
+
+            /* Saturday list items accent blue and normal style */
+            .saturday {
+                color: var(--accent-color);
+                font-style: normal;
+                font-weight: bold;
             }
 
             /* Button row styling */
@@ -155,23 +162,24 @@
     <body>
         <div class="header">
             <button id="getData" title="Get Data">
-                <img src="assets/logo.png" alt="Get Data" />
+                <img src="assets/images/logo.png" alt="Get Data" />
             </button>
             <h1>MiniMachine</h1>
         </div>
         <div class="button-group">
-            <button id="goToSummary" title="Summary">
+            <button id="goToStatistics" title="Statistics">
                 <span class="material-symbols-outlined">analytics</span>
             </button>
             <button id="goToLatestNull" title="Latest Unsolved">
                 <span class="material-symbols-outlined">crossword</span>
             </button>
             <button id="SonicScraper" title="Super Speed">
-                <img src="assets/sonic.png" alt="Super Speed" />
+                <img src="assets/images/sonic.png" alt="Super Speed" />
             </button>
         </div>
         <ul id="puzzleList"></ul>
         <div id="statistics"></div>
-        <script src="popup.js"></script>
+        <script src="src/components/utils.js"></script>
+        <script src="src/popup.js"></script>
     </body>
 </html>

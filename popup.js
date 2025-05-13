@@ -1,7 +1,7 @@
 // --- popup.js ---
 document.addEventListener("DOMContentLoaded", () => {
     const getDataButton = document.getElementById("getData");
-    const goToSummaryButton = document.getElementById("goToSummary");
+    const goToStatisticsButton = document.getElementById("goToStatistics");
     const puzzleList = document.getElementById("puzzleList");
     const SonicScraperButton = document.getElementById("SonicScraper");
 
@@ -14,21 +14,32 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         getDataButton.innerHTML =
             data.mode === 1
-                ? `<img src="assets/thinking_robot.gif" alt="Stop Getting Data">`
-                : `<img src="assets/logo.png" alt="Get Data">`;
+                ? `<img src="assets/images/thinking_robot.gif" alt="Stop Getting Data">`
+                : `<img src="assets/images/logo.png" alt="Get Data">`;
         getDataButton.title =
             data.mode === 1 ? "Stop Getting Data" : "Get Data";
         // Add or remove collecting class based on mode
         getDataButton.classList.toggle("collecting", data.mode === 1);
 
         if (data.mode === 2) {
-            SonicScraperButton.innerHTML = `<img src="assets/sonic-rolling.gif" alt="SonicScraper On">`;
+            SonicScraperButton.innerHTML = `<img src="assets/images/sonic-rolling.gif" alt="SonicScraper On">`;
         } else {
-            SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
+            SonicScraperButton.innerHTML = `<img src="assets/images/sonic.png" alt="SonicScraper Off">`;
         }
         // Toggle active class for SonicScraper
         SonicScraperButton.classList.toggle("active", data.mode === 2);
     });
+
+    // Helper: ensure content scripts are injected before messaging
+    function ensureContentScript(tabId, callback) {
+        chrome.scripting.executeScript(
+            {
+                target: { tabId: tabId },
+                files: ["src/components/utils.js", "src/content.js"],
+            },
+            callback
+        );
+    }
 
     // Toggle Get Data (mode 1) <-> off (mode 0)
     getDataButton.addEventListener("click", () => {
@@ -37,24 +48,37 @@ document.addEventListener("DOMContentLoaded", () => {
             chrome.storage.local.set({ mode: newMode }, () => {
                 getDataButton.innerHTML =
                     newMode === 1
-                        ? `<img src="assets/thinking_robot.gif" alt="Stop Getting Data">`
-                        : `<img src="assets/logo.png" alt="Get Data">`;
+                        ? `<img src="assets/images/thinking_robot.gif" alt="Stop Getting Data">`
+                        : `<img src="assets/images/logo.png" alt="Get Data">`;
                 getDataButton.title =
                     newMode === 1 ? "Stop Getting Data" : "Get Data";
                 // Toggle collecting class
                 getDataButton.classList.toggle("collecting", newMode === 1);
 
                 // always turn SonicScraper off
-                SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
+                SonicScraperButton.innerHTML = `<img src="assets/images/sonic.png" alt="SonicScraper Off">`;
                 SonicScraperButton.classList.remove("active");
                 // notify content
                 chrome.tabs.query(
                     { active: true, currentWindow: true },
                     (tabs) => {
                         if (tabs[0]) {
-                            chrome.tabs.sendMessage(tabs[0].id, {
-                                action: "updateMode",
-                                mode: newMode,
+                            ensureContentScript(tabs[0].id, () => {
+                                chrome.tabs.sendMessage(
+                                    tabs[0].id,
+                                    {
+                                        action: "updateMode",
+                                        mode: newMode,
+                                    },
+                                    (response) => {
+                                        if (chrome.runtime.lastError) {
+                                            console.warn(
+                                                "Could not send updateMode message:",
+                                                chrome.runtime.lastError.message
+                                            );
+                                        }
+                                    }
+                                );
                             });
                         }
                     }
@@ -69,14 +93,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const newMode = data.mode === 2 ? 0 : 2;
             chrome.storage.local.set({ mode: newMode }, () => {
                 if (newMode === 2) {
-                    SonicScraperButton.innerHTML = `<img src="assets/sonic-rolling.gif" alt="SonicScraper On">`;
+                    SonicScraperButton.innerHTML = `<img src="assets/images/sonic-rolling.gif" alt="SonicScraper On">`;
                 } else {
-                    SonicScraperButton.innerHTML = `<img src="assets/sonic.png" alt="SonicScraper Off">`;
+                    SonicScraperButton.innerHTML = `<img src="assets/images/sonic.png" alt="SonicScraper Off">`;
                 }
                 // Toggle active class for SonicScraper
                 SonicScraperButton.classList.toggle("active", newMode === 2);
                 // always turn Get Data off
-                getDataButton.innerHTML = `<img src="assets/logo.png" alt="Get Data">`;
+                getDataButton.innerHTML = `<img src="assets/images/logo.png" alt="Get Data">`;
                 getDataButton.title = "Get Data";
                 // Ensure collecting class removed when not collecting
                 getDataButton.classList.remove("collecting");
@@ -84,9 +108,22 @@ document.addEventListener("DOMContentLoaded", () => {
                     { active: true, currentWindow: true },
                     (tabs) => {
                         if (tabs[0]) {
-                            chrome.tabs.sendMessage(tabs[0].id, {
-                                action: "updateMode",
-                                mode: newMode,
+                            ensureContentScript(tabs[0].id, () => {
+                                chrome.tabs.sendMessage(
+                                    tabs[0].id,
+                                    {
+                                        action: "updateMode",
+                                        mode: newMode,
+                                    },
+                                    (response) => {
+                                        if (chrome.runtime.lastError) {
+                                            console.warn(
+                                                "Could not send updateMode message:",
+                                                chrome.runtime.lastError.message
+                                            );
+                                        }
+                                    }
+                                );
                             });
                         }
                     }
@@ -95,9 +132,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Go to Summary page: Open the summary page in a new tab
-    goToSummaryButton.addEventListener("click", () => {
-        chrome.tabs.create({ url: chrome.runtime.getURL("summary.html") });
+    // Go to Statistics page: Open the stats page in a new tab
+    goToStatisticsButton.addEventListener("click", () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL("statistics.html") });
     });
 
     // Helper: Convert "m:ss" to seconds.
@@ -115,34 +152,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const li = document.createElement("li");
         const puzzleDate = new Date(puzzle.date);
         if (puzzleDate.getDay() === 6) {
-            // Saturday
-            li.innerHTML = `<strong><em>Date: ${puzzle.date}, Time: ${puzzle.time}</em></strong>`;
+            // Saturday: add accent class
+            li.classList.add("saturday");
+            li.innerHTML = `<strong>Date: ${puzzle.date}, Time: ${puzzle.time}</strong>`;
         } else {
             li.textContent = `Date: ${puzzle.date}, Time: ${puzzle.time}`;
         }
         return li;
-    }
-
-    // Helper: Find the most recent date (MM/DD/YYYY) with no recorded time (an empty/blank value) or null
-    function getLatestUnsolvedDate(puzzles) {
-        const startDate = new Date("2014-08-21");
-        const today = new Date();
-        let d = new Date(today);
-        d.setHours(0, 0, 0, 0);
-        while (d >= startDate) {
-            const dateStr = `${
-                d.getMonth() + 1
-            }/${d.getDate()}/${d.getFullYear()}`;
-            const entry = puzzles.find((p) => p.date === dateStr);
-            if (!entry || !entry.time || entry.time.trim() === "" || entry.time.trim().toLowerCase() === "null") {
-                return dateStr;
-            }
-            d.setDate(d.getDate() - 1);
-        }
-        // Fallback: today's date
-        return `${
-            today.getMonth() + 1
-        }/${today.getDate()}/${today.getFullYear()}`;
     }
 
     // Function to update the displayed list of puzzles in storage
@@ -183,7 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const puzzles = result.puzzles;
             const processed = puzzles.length;
             const startDate = new Date("2014-08-21");
-            const today = new Date();
+            const today = getPublishedPuzzleDate();
             const totalDays =
                 Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
             const percentage = ((processed / totalDays) * 100).toFixed(1);
@@ -208,17 +224,59 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Wire up the button to go to most recent unsolved puzzle
     const goBtn = document.getElementById("goToLatestNull");
+    // Only show "Latest Unsolved" when on NYT Mini crossword pages
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const url = tabs[0]?.url || "";
+        if (
+            goBtn &&
+            !/^https:\/\/www\.nytimes\.com\/crosswords\/game\/mini/.test(url)
+        ) {
+            goBtn.style.display = "none";
+        }
+    });
     if (goBtn) {
         goBtn.addEventListener("click", () => {
-            chrome.storage.local.get({ puzzles: [] }, (result) => {
-                const puzzles = result.puzzles;
-                const targetDate = getLatestUnsolvedDate(puzzles);
-                const [m, d, y] = targetDate.split("/");
-                const mm = String(m).padStart(2, "0");
-                const dd = String(d).padStart(2, "0");
-                const url = `https://www.nytimes.com/crosswords/game/mini/${y}/${mm}/${dd}`;
-                chrome.tabs.create({ url }); // open targetDate in a new Chrome tab
+            // Navigate to nearest unsolved crossword starting from today
+            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                if (tabs[0]) {
+                    ensureContentScript(tabs[0].id, () => {
+                        chrome.tabs.sendMessage(
+                            tabs[0].id,
+                            {
+                                action: "navigateCrossword",
+                            },
+                            (response) => {
+                                if (chrome.runtime.lastError) {
+                                    console.warn(
+                                        "Could not send navigateCrossword message:",
+                                        chrome.runtime.lastError.message
+                                    );
+                                }
+                            }
+                        );
+                    });
+                }
             });
         });
     }
+
+    // Show navigation button when popup opens
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+            ensureContentScript(tabs[0].id, () => {
+                chrome.tabs.sendMessage(
+                    tabs[0].id,
+                    { action: "showNavButton" },
+                    (response) => {
+                        if (chrome.runtime.lastError) {
+                            console.warn(
+                                "Could not send showNavButton message:",
+                                chrome.runtime.lastError.message
+                            );
+                        }
+                    }
+                );
+            });
+        }
+    });
 });

@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="UTF-8" />
-        <title>Summary - MiniMachine</title>
+        <title>Statistics - MiniMachine</title>
         <style>
             /* Modern variables and resets */
             :root {
@@ -10,7 +10,7 @@
                 --card-bg: #1e1e1e;
                 --text-color: #e0e0e0;
                 --border-color: #333;
-                --accent-color: #608efa;
+                --accent-color: #6493e6;
             }
 
             /* Modern dark mode body */
@@ -23,7 +23,7 @@
             }
 
             /* Responsive grid */
-            #summaryGrid {
+            #statisticsGrid {
                 display: grid;
                 grid-template-columns: repeat(4, 1fr);
                 gap: 10px;
@@ -47,7 +47,7 @@
             h1,
             h2,
             h3 {
-                color: var(--text-color);
+                color: var(--accent-color);
                 font-weight: 500;
             }
 
@@ -124,7 +124,7 @@
             .header-inline {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: flex-start;
                 margin-bottom: 20px;
             }
             .inline-stats {
@@ -132,20 +132,59 @@
                 line-height: 1.2;
                 color: var(--accent-color);
                 white-space: nowrap;
+                margin-left: auto; /* push stats to right */
+            }
+
+            /* link styling inside inline stats */
+            .inline-stats a {
+                color: inherit;
+                text-decoration: none;
+            }
+            .inline-stats a:hover {
+                color: #fff;
+            }
+
+            /* Saturday list items accent blue and normal style */
+            .saturday {
+                color: var(--accent-color);
+                font-style: normal;
+                font-weight: bold;
+            }
+
+            .header-inline img.header-logo {
+                width: 40px;
+                height: 40px;
+                object-fit: contain;
+                margin-right: 10px;
+            }
+
+            #reminder-message {
+                color: var(--text-color) !important;
+            }
+
+            /* Slow fade of link color on hover */
+            #actionButtons a {
+                transition: color 0.2s ease;
+            }
+            #actionButtons a:hover {
+                color: var(--accent-color) !important;
             }
         </style>
+
         <!-- Reference local Chart.js -->
         <script src="assets/chartjs/chart.umd.js"></script>
         <!-- Include the Chart.js Zoom Plugin -->
         <script src="assets/chartjs/chartjs-plugin-zoom.js"></script>
+        <script src="src/components/utils.js"></script>
     </head>
 
     <body>
         <div class="header-inline">
-            <h1>Your MiniMachine Summary</h1>
+            <img src="assets/images/logo.png" alt="MiniMachine" class="header-logo" />
+            <h1><b>Your MiniMachine Statistics</b></h1>
             <div id="inlineStats" class="inline-stats"></div>
         </div>
-        <div id="summaryGrid">
+        <div id="statisticsGrid">
             <!-- Row 1: Puzzle Lists -->
             <div class="grid-item" id="lastWeekPuzzles">
                 <h2>Last Week</h2>
@@ -240,7 +279,9 @@
                 "
             >
                 <span style="display: flex; gap: 15px; align-items: center">
-                    <b>All for the love of NY Times mini crossword puzzles!</b>
+                    <b style="color: var(--accent-color)"
+                        >All for the love of NY Times mini crossword puzzles!</b
+                    >
                     <a
                         href="https://thussenthan.github.io/"
                         target="_blank"
@@ -253,6 +294,6 @@
             </div>
         </div>
 
-        <script src="summary.js"></script>
+        <script src="src/statistics.js"></script>
     </body>
 </html>

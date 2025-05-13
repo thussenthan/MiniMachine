@@ -41,47 +41,31 @@ function resetModes() {
 // State 0: Auto-navigation functionality.
 function initAutoNavigation() {
     resetModes();
-    console.log(
-        "Auto-navigation mode active. Current URL:",
-        window.location.href
-    );
+    // Only show navigation button on NYT Mini crossword pages
+    if (!/^https:\/\/www\.nytimes\.com\/crosswords\/game\/mini(?:$|\/)/.test(window.location.href)) {
+        return;
+    }
 
     // Extract the date from the URL (YYYY/MM/DD)
     const url = window.location.href;
     const datePattern = /(\d{4})\/(\d{2})\/(\d{2})/;
     const dateMatch = url.match(datePattern);
-    if (!dateMatch) {
-        return;
+    let currentDate;
+    let isBaseUrl = false;
+    if (dateMatch) {
+        currentDate = new Date(
+            `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
+        );
+    } else {
+        // Treat base URL (no date) as today's puzzle
+        currentDate = getPublishedPuzzleDate();
+        isBaseUrl = true;
     }
-
-    // Create a Date object from the extracted date
-    const currentDate = new Date(
-        `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
-    );
-
-    // Check if the current puzzle date is today. If so, skip auto-navigation.
-    const today = new Date();
-    if (
-        currentDate.getFullYear() === today.getFullYear() &&
-        currentDate.getMonth() === today.getMonth() &&
-        currentDate.getDate() === today.getDate()
-    ) {
-        console.log("Today's puzzle active. Skipping auto-navigation back.");
-        return;
-    }
-
-    // Decrement the date by one day
-    const prevDate = new Date(currentDate);
-    prevDate.setDate(currentDate.getDate() - 1);
-    // Format the previous date as YYYY/MM/DD
-    const prevDateStr = prevDate.toISOString().split("T")[0].replace(/-/g, "/");
-    // Generate the new URL
-    const prevUrl = url.replace(datePattern, prevDateStr);
 
     // Create a navigation button and attach it to the page
     const button = document.createElement("button");
     button.id = "navBtn";
-    button.textContent = "Go Back a Puzzle";
+    button.textContent = "Next Puzzle";
     button.style.position = "fixed";
     button.style.top = "10px";
     button.style.right = "10px";
@@ -92,71 +76,92 @@ function initAutoNavigation() {
     button.style.borderRadius = "5px";
     button.style.cursor = "pointer";
     button.style.zIndex = "9999";
-    button.addEventListener("click", () => {
-        window.location.href = prevUrl;
+
+    const closeBtn = document.createElement("span");
+    closeBtn.textContent = "×";
+    // style the close icon
+    closeBtn.style.position = "absolute";
+    closeBtn.style.top = "0";
+    closeBtn.style.right = "0";
+    closeBtn.style.transform = "translate(50%, -50%)";
+    closeBtn.style.width = "16px";
+    closeBtn.style.height = "16px";
+    closeBtn.style.lineHeight = "16px";
+    closeBtn.style.textAlign = "center";
+    closeBtn.style.padding = "0";
+    closeBtn.style.borderRadius = "50%";
+    closeBtn.style.backgroundColor = "rgba(0, 0, 0, 0.6)";
+    closeBtn.style.color = "#fff";
+    closeBtn.style.fontSize = "12px";
+    closeBtn.style.cursor = "pointer";
+    closeBtn.style.display = "none";
+    closeBtn.style.zIndex = "10000";
+    // ensure button container can show overflow
+    button.style.position = "fixed";
+    button.style.overflow = "visible";
+    button.appendChild(closeBtn);
+    button.addEventListener("mouseover", () => {
+        closeBtn.style.display = "block";
     });
-    document.body.appendChild(button);
-    console.log("Navigation button added.");
+    button.addEventListener("mouseout", () => {
+        closeBtn.style.display = "none";
+    });
+    closeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        button.style.display = "none";
+    });
 
-    // Auto-navigate when the modal is detected
-    navObserver = new MutationObserver(() => {
-        const targetElement = document.querySelector(
-            `.${"xwd__center mini__congrats-modal--message".replace(
-                /\s+/g,
-                "."
-            )}`
-        );
-        if (targetElement) {
-            // Record the solve time before navigating using the second bold element
-            const solveTimeElements = document.querySelectorAll(
-                "div.xwd__center.mini__congrats-modal--message span.xwd__bold"
-            );
-            let solveTimeText =
-                solveTimeElements && solveTimeElements.length > 1
-                    ? solveTimeElements[1].innerText.trim()
-                    : null;
-            // Convert time format if in seconds form (e.g., "34 seconds")
-            if (
-                solveTimeText &&
-                solveTimeText.toLowerCase().includes("second")
-            ) {
-                const seconds = parseInt(solveTimeText);
-                if (!isNaN(seconds)) {
-                    const minutes = Math.floor(seconds / 60);
-                    const remSeconds = seconds % 60;
-                    solveTimeText = `${minutes}:${remSeconds
-                        .toString()
-                        .padStart(2, "0")}`;
-                }
-            }
-            // Format date as MM/DD/YYYY
-            const puzzleDateStr = `${
-                currentDate.getMonth() + 1
-            }/${currentDate.getDate()}/${currentDate.getFullYear()}`;
-
-            // Persist this puzzle's time into storage:
+    chrome.storage.local.get({ puzzles: [] }, (data) => {
+        const puzzles = data.puzzles;
+        // Use shared helper to find the latest unsolved puzzle date
+        const latest = getLatestUnsolvedFromDate(puzzles, currentDate);
+        const [m, d, y] = latest.split("/");
+        const mm = String(m).padStart(2, "0");
+        const dd = String(d).padStart(2, "0");
+        const targetStr = `${y}/${mm}/${dd}`;
+        // Navigate to the computed last unsolved puzzle URL
+        let prevUrl;
+        if (isBaseUrl) {
+            prevUrl = `https://www.nytimes.com/crosswords/game/mini/${targetStr}`;
+        } else {
+            prevUrl = url.replace(datePattern, targetStr);
+        }
+        // set up click handler to navigate immediately to nearest unsolved
+        button.addEventListener("click", () => {
             chrome.storage.local.get({ puzzles: [] }, (data) => {
                 const puzzles = data.puzzles;
-                const idx = puzzles.findIndex((p) => p.date === puzzleDateStr);
-                if (idx > -1) {
-                    puzzles[idx].time = solveTimeText;
-                } else {
-                    puzzles.push({ date: puzzleDateStr, time: solveTimeText });
+                const url = window.location.href;
+                const datePattern = /(\d{4})\/(\d{2})\/(\d{2})/;
+                const match = url.match(datePattern);
+                const pageDate = match
+                    ? new Date(
+                          parseInt(match[1], 10),
+                          parseInt(match[2], 10) - 1,
+                          parseInt(match[3], 10)
+                      )
+                    : getPublishedPuzzleDate();
+                const currentDateStr = `${
+                    pageDate.getMonth() + 1
+                }/${pageDate.getDate()}/${pageDate.getFullYear()}`;
+                const searchDate = new Date(pageDate);
+                searchDate.setDate(searchDate.getDate() - 1);
+                let nextDateStr = getLatestUnsolvedFromDate(
+                    puzzles,
+                    searchDate
+                );
+                if (nextDateStr === currentDateStr) {
+                    handleFallbackNavigation(pageDate, url, datePattern, false);
+                    return;
                 }
-                chrome.storage.local.set({ puzzles });
+                // Proceed with normal navigation logic
+                chrome.storage.local.set({ autoNavActive: true }, () => {
+                    startAutoNavigationLoop();
+                });
             });
-
-            console.log(
-                "Modal detected. Redirecting in 1.5 seconds to:",
-                prevUrl
-            );
-            setTimeout(() => {
-                window.location.href = prevUrl;
-            }, 1500);
-            navObserver.disconnect();
-        }
+        });
+        document.body.appendChild(button);
+        console.log("Navigation button added.");
     });
-    navObserver.observe(document.body, { childList: true, subtree: true });
 }
 
 // State 1: Scraping mode (gathers data without auto-navigation)
@@ -191,7 +196,7 @@ function runScrape() {
                     currentPuzzleDate.setDate(currentPuzzleDate.getDate() + 1);
 
                     // Get today's date (without time component) for comparison.
-                    const today = new Date();
+                    const today = getPublishedPuzzleDate();
                     const currentDateOnly = new Date(
                         today.getFullYear(),
                         today.getMonth(),
@@ -236,7 +241,7 @@ function runSonicScraper() {
 
     const archiveStartYear = 2014;
     const archiveStartMonth = 8;
-    const today = new Date();
+    const today = getPublishedPuzzleDate(); // use published date cutoff for today in ET
     const currentYear = today.getFullYear();
     const currentMonth = today.getMonth() + 1;
 
@@ -358,8 +363,23 @@ function runSonicScraper() {
     });
 }
 
-// Listen for messages from the popup to automatically update the mode state immediately.
+// Listen for messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "showNavButton") {
+        resetModes();
+        initAutoNavigation();
+        return;
+    }
+    if (message.action === "navigateCrossword") {
+        console.log(
+            "Popup requested crossword navigation: starting crossword navigation loop"
+        );
+        chrome.storage.local.set({ autoNavActive: true }, () => {
+            // Use shared helper in utils.js
+            navigateCrossword();
+        });
+        return;
+    }
     if (message.action === "updateMode") {
         chrome.storage.local.set({ mode: message.mode }, () => {
             chrome.runtime.sendMessage({
@@ -377,13 +397,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 });
 
-// On initial load: Check mode state in storage and run the corresponding function.
-chrome.storage.local.get({ mode: 0 }, (data) => {
+// On initial load: choose mode or resume auto-navigation
+chrome.storage.local.get({ mode: 0, autoNavActive: false }, (data) => {
     if (data.mode === 1) {
         runScrape();
     } else if (data.mode === 2) {
         runSonicScraper();
     } else {
-        initAutoNavigation();
+        if (data.autoNavActive) {
+            resetModes();
+            startAutoNavigationLoop();
+        } else {
+            initAutoNavigation();
+        }
     }
 });

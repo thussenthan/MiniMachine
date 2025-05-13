@@ -2,16 +2,16 @@
     "manifest_version": 3,
     "name": "MiniMachine",
     "version": "1.0",
-    "description": "Auto-navigates to next puzzle after solve & extracts all puzzle times and summary statistics from NYT mini puzzles.",
+    "description": "Auto-navigates, extracts puzzle times, and computes statistics for NYT mini crossword puzzles.",
     "icons": {
-        "16": "assets/logo.png",
-        "48": "assets/logo.png",
-        "128": "assets/logo.png"
+        "16": "assets/images/logo.png",
+        "48": "assets/images/logo.png",
+        "128": "assets/images/logo.png"
     },
     "permissions": ["storage", "tabs", "scripting"],
     "host_permissions": ["https://www.nytimes.com/*"],
     "background": {
-        "service_worker": "background.js"
+        "service_worker": "src/background.js"
     },
     "action": {
         "default_popup": "popup.html"
@@ -19,7 +19,7 @@
     "content_scripts": [
         {
             "matches": ["https://www.nytimes.com/crosswords/*"],
-            "js": ["content.js"]
+            "js": ["src/components/utils.js", "src/content.js"]
         }
     ]
 }
